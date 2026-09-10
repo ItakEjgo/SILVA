@@ -1,12 +1,12 @@
 #include <atomic>
 #pragma once
 // --- From mvzd/src/mvq/node.hpp ---
-#include "global_config.hpp"
-#include "geo/point.hpp"
-#include "geo/operations.hpp"
-#include "geo/io.hpp"
+#include <silva/core/global_config.hpp>
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
+#include <silva/geo/io.hpp>
 #include <parlay/internal/get_time.h>
-#include "pam/utils.h"
+#include <pam/utils.h>
 
 #define USE_PT
 

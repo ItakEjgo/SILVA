@@ -8,23 +8,23 @@
 
 #include <cpam/cpam.h>
 #include <parlay/primitives.h>
-#include "../geo/point.hpp"
-#include "../geo/operations.hpp"
-#include "../geo/io.hpp"
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
+#include <silva/geo/io.hpp>
 #include <parlay/internal/get_time.h>
 #include <parlay/hash_table.h>
-#include "../mvq.hpp"
-#include "../cpamz.hpp"
-#include "helper/time_loop.h"
+#include <silva/index/mvq.hpp>
+#include <silva/index/cpamz.hpp>
+#include <helper/time_loop.h>
 
-#include "../hilbert.h"
-#include "../cpambb.hpp"
+#include <silva/core/hilbert.h>
+#include <silva/index/cpambb.hpp>
 
 #define TEST	//	print for correctness check
 
 using namespace std;
 using namespace geobase;
 
-#include "../global_config.hpp"
+#include <silva/core/global_config.hpp>
 
 

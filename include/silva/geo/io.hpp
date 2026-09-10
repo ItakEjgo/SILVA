@@ -1,8 +1,8 @@
 #include <parlay/parallel.h>
 #include <parlay/sequence.h>
 #pragma once
-#include "point.hpp"
-#include "operations.hpp"
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
 namespace geobase {
     template <class T>
     auto read_pts(T &P, ifstream &fin, bool real_data = false)

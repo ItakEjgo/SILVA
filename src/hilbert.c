@@ -23,7 +23,7 @@
  * much derived from his work. */
 
 
-#include "hilbert.h"
+#include <silva/core/hilbert.h>
 
 /* implementation of the hilbert functions */
 

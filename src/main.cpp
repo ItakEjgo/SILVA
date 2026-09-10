@@ -2,20 +2,20 @@
 
 #include <cpam/cpam.h>
 #include <parlay/primitives.h>
-#include "geo/point.hpp"
-#include "geo/operations.hpp"
-#include "geo/io.hpp"
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
+#include <silva/geo/io.hpp>
 #include <parlay/internal/get_time.h>
 #include <parlay/hash_table.h>
 #include <cpam/parse_command_line.h>
-#include "mvq.hpp"
-#include "cpamz.hpp"
-#include "helper/time_loop.h"
+#include <silva/index/mvq.hpp>
+#include <silva/index/cpamz.hpp>
+#include <helper/time_loop.h>
 
-#include "global_config.hpp"
-#include "test/test_mvq.hpp"
-#include "test/test_cpambb.hpp"
-#include "test/test_cpamz.hpp"
+#include <silva/core/global_config.hpp>
+#include "test_mvq.hpp"
+#include "test_cpambb.hpp"
+#include "test_cpamz.hpp"
 // #include "seq_zdtree.hpp"
 
 using namespace std;

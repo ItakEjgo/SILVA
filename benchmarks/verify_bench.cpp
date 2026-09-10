@@ -12,14 +12,14 @@
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/index/rtree.hpp>
 
-#include "parlay/internal/get_time.h"
+#include <parlay/internal/get_time.h>
 #include <cpam/parse_command_line.h>
-#include "helper/time_loop.h"
+#include <helper/time_loop.h>
 
-#include "src/mvq.hpp"
-#include "src/cpamz.hpp"
-#include "src/global_config.hpp"
-#include "src/cpambb.hpp"
+#include <silva/index/mvq.hpp>
+#include <silva/index/cpamz.hpp>
+#include <silva/core/global_config.hpp>
+#include <silva/index/cpambb.hpp>
 
 using namespace std;
 namespace bg = boost::geometry;

@@ -4,7 +4,7 @@
 
 #include <bits/stdc++.h>
 #include <parlay/internal/binary_search.h>
-#include "../hilbert.h"
+#include <silva/core/hilbert.h>
 
 namespace geobase
 {

@@ -1,0 +1,46 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++-14",
+      "-c",
+      "-O3",
+      "-DNDEBUG",
+      "-mcx16",
+      "-march=native",
+      "-DHOMEGROWN",
+      "-pthread",
+      "-std=c++20",
+      "-Wall",
+      "-I../include",
+      "-Wl,-R/usr/local/lib",
+      "-o",
+      "main",
+      "main.cpp"
+    ],
+    "directory": "/home/bhuan102/Research/SILVA/mvzd/src",
+    "file": "/home/bhuan102/Research/SILVA/mvzd/src/main.cpp",
+    "output": "/home/bhuan102/Research/SILVA/mvzd/src/main"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++-14",
+      "-c",
+      "-O3",
+      "-DNDEBUG",
+      "-mcx16",
+      "-march=native",
+      "-DHOMEGROWN",
+      "-pthread",
+      "-std=c++20",
+      "-Wall",
+      "-I../include",
+      "-Wl,-R/usr/local/lib",
+      "-o",
+      "main",
+      "hilbert.c"
+    ],
+    "directory": "/home/bhuan102/Research/SILVA/mvzd/src",
+    "file": "/home/bhuan102/Research/SILVA/mvzd/src/hilbert.c",
+    "output": "/home/bhuan102/Research/SILVA/mvzd/src/main"
+  }
+]

@@ -1,8 +1,8 @@
 #pragma once
 #include <cstddef>
-#include "geo/point.hpp"
-#include "geo/operations.hpp"
-#include "geo/io.hpp"
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
+#include <silva/geo/io.hpp>
 
 namespace mvq {
 

@@ -1,7 +1,7 @@
 #include <parlay/primitives.h>
 #include <parlay/sequence.h>
 #pragma once
-#include "point.hpp"
+#include <silva/geo/point.hpp>
 namespace geobase {
     template <typename PT>
     auto filter_diff_results(PT &add, PT &remove)

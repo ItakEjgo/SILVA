@@ -4,11 +4,11 @@
 
 #include <cpam/cpam.h>
 #include <parlay/primitives.h>
-#include "geo/point.hpp"
-#include "geo/operations.hpp"
-#include "geo/io.hpp"
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
+#include <silva/geo/io.hpp>
 #include <parlay/internal/get_time.h>
-#include "mvq.hpp"
+#include <silva/index/mvq.hpp>
 
 
 namespace CPAMZ{

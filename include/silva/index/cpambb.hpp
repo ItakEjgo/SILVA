@@ -5,11 +5,11 @@
 #include <cpam/cpam.h>
 // #include <pam/pam.h>
 #include <parlay/primitives.h>
-#include "geo/point.hpp"
-#include "geo/operations.hpp"
-#include "geo/io.hpp"
+#include <silva/geo/point.hpp>
+#include <silva/geo/operations.hpp>
+#include <silva/geo/io.hpp>
 #include <parlay/internal/get_time.h>
-#include "pam/utils.h"
+#include <pam/utils.h>
 
 #define BR_MBR
 #define SEQ
