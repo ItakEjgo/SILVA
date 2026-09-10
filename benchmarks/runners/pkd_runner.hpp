@@ -48,9 +48,15 @@ struct PKDRunner {
         point_t q_pt({q.x, q.y}, 0);
         tree_t::box nodeBox = pkd.get_root_box();
         using nn_pair = std::pair<point_t, double>;
-        // KNN dummy for now to keep compilation green
-        cnt = 0;
-        h = 0;
+        std::vector<nn_pair> out_buffer(k);
+        parlay::slice<nn_pair*, nn_pair*> out_slice(out_buffer.data(), out_buffer.data() + k);
+        cpdd::kBoundedQueue<point_t, nn_pair> bq(out_slice);
+        
+        size_t visNodeNum = 0;
+        pkd.k_nearest(pkd.get_root(), q_pt, 2, bq, nodeBox, visNodeNum);
+        
+        cnt = k; 
+        for (size_t i = 0; i < k; i++) h += out_buffer[i].first.id;
     }
     
     void commit(parlay::sequence<geobase::Point>& adds, parlay::sequence<geobase::Point>& rems) {
