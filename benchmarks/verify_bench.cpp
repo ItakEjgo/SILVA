@@ -17,217 +17,12 @@
 #include <helper/time_loop.h>
 
 #include <silva/index/mvq.hpp>
-#include <silva/index/cpamz.hpp>
 #include <silva/core/global_config.hpp>
-#include <silva/index/cpambb.hpp>
+#include <silva/index/pacz.hpp>
 
 using namespace std;
-namespace bg = boost::geometry;
-namespace bgi = boost::geometry::index;
-
-typedef bg::model::point<double, 2, bg::cs::cartesian> BoostPoint;
-typedef pair<BoostPoint, size_t> Value;
-
-
-inline std::atomic<size_t> boost_live_mem(0);
-
-size_t unordered_set_mem_estimate(size_t bucket_count) {
-    return bucket_count * sizeof(void*); // simplistic estimate for unordered_set buckets
-}
-
-template <typename T>
-class TrackingAllocator {
-public:
-    typedef T value_type;
-    TrackingAllocator() = default;
-    template <typename U> TrackingAllocator(const TrackingAllocator<U>&) {}
-    
-    T* allocate(std::size_t n) {
-        boost_live_mem.fetch_add(n * sizeof(T), std::memory_order_relaxed);
-        return static_cast<T*>(::operator new(n * sizeof(T)));
-    }
-    void deallocate(T* p, std::size_t n) {
-        boost_live_mem.fetch_sub(n * sizeof(T), std::memory_order_relaxed);
-        ::operator delete(p);
-    }
-};
-
-template <typename T, typename U>
-bool operator==(const TrackingAllocator<T>&, const TrackingAllocator<U>&) { return true; }
-template <typename T, typename U>
-bool operator!=(const TrackingAllocator<T>&, const TrackingAllocator<U>&) { return false; }
-
-typedef bgi::rtree<Value, bgi::quadratic<32>, bgi::indexable<Value>, bgi::equal_to<Value>, TrackingAllocator<Value>> RTree;
-struct RlogBranch {
-    std::vector<Value> insert_log;
-    std::vector<Value> remove_log;
-    shared_ptr<RTree> base_snapshot;
-};
-
-class RlogTree {
-public:
-    struct MaxHeapCmp {
-        bool operator()(const std::pair<double, Value>& a, const std::pair<double, Value>& b) const {
-            return a.first < b.first;
-        }
-    };
-    int compaction_years;
-    int last_compact_year;
-    shared_ptr<RTree> snapshot;
-    std::vector<Value> insert_log;
-    std::vector<Value> remove_log;
-    mutable size_t query_lookup_count = 0;
-    mutable std::unordered_set<size_t> removed_ids;
-    mutable bool cache_valid = false;
-    
-    void update_cache() const {
-        if (!cache_valid) {
-            removed_ids.clear();
-            removed_ids.reserve(remove_log.size()); // 优化1：防 rehash 扩容
-            for (const auto& val : remove_log) removed_ids.insert(val.second);
-            cache_valid = true;
-        }
-    }
-    
-    RlogTree() : compaction_years(99), last_compact_year(0) { snapshot = make_shared<RTree>(); }
-    RlogTree(int c_years) : compaction_years(c_years), last_compact_year(0) { snapshot = make_shared<RTree>(); }
-
-    void build_base(const std::vector<Value>& base_data) {
-        snapshot = make_shared<RTree>(base_data.begin(), base_data.end());
-    }
-    void compact() {
-        if (insert_log.empty() && remove_log.empty()) return;
-        
-        std::vector<Value> next_pts;
-        next_pts.reserve(snapshot->size() + insert_log.size());
-        
-        if (!remove_log.empty()) {
-            update_cache();
-            auto is_alive = [this](Value const& v) { return removed_ids.find(v.second) == removed_ids.end(); };
-            
-            // 直接在从树里取点的迭代器层级，使用 is_alive 过滤 (std::copy_if)
-            std::copy_if(snapshot->begin(), snapshot->end(), std::back_inserter(next_pts), is_alive);
-            
-            // 同样对 insert_log 进行过滤提取
-            std::copy_if(insert_log.begin(), insert_log.end(), std::back_inserter(next_pts), is_alive);
-        } else {
-            next_pts.assign(snapshot->begin(), snapshot->end());
-            next_pts.insert(next_pts.end(), insert_log.begin(), insert_log.end());
-        }
-        
-        snapshot = make_shared<RTree>(next_pts.begin(), next_pts.end());
-        
-        // 优化2：真正释放内存，防止假性 OOM 和内存指标虚高
-        std::vector<Value>().swap(insert_log); 
-        std::vector<Value>().swap(remove_log);
-        removed_ids = std::unordered_set<size_t>(); // 释放哈希表底层的 bucket 内存
-        cache_valid = true; // 空表即为有效状态
-    }
-    void commit_inserts(const std::vector<Value>& new_pts) {
-        insert_log.insert(insert_log.end(), new_pts.begin(), new_pts.end());
-        
-    }
-    void merge(const RlogBranch& branch) {
-        // 优化3：只插入数据时，根本不需要废弃关于“死亡名单”的哈希表缓存！
-        if (!branch.insert_log.empty()) { insert_log.insert(insert_log.end(), branch.insert_log.begin(), branch.insert_log.end()); }
-        if (!branch.remove_log.empty()) { remove_log.insert(remove_log.end(), branch.remove_log.begin(), branch.remove_log.end()); cache_valid = false; }
-    }
-    void check_and_compact(int current_year) {
-        if (last_compact_year == 0) last_compact_year = current_year;
-        if (current_year - last_compact_year >= compaction_years) {
-            compact();
-            last_compact_year = current_year;
-        }
-    }
-    std::vector<Value> range_report(const geobase::Bounding_Box& q) const {
-        query_lookup_count = 0;
-        update_cache();
-        std::vector<Value> result;
-        bg::model::box<BoostPoint> box(BoostPoint(q.first.x, q.first.y), BoostPoint(q.second.x, q.second.y));
-        auto is_alive = [this](Value const& v) { query_lookup_count++; return removed_ids.find(v.second) == removed_ids.end(); };
-        
-        // 优雅：直接在树的遍历底层完成过滤，连中间临时数组 snap_res 都省了
-        snapshot->query(bgi::intersects(box) && bgi::satisfies(is_alive), std::back_inserter(result));
-        
-        for (const auto& val : insert_log) {
-            query_lookup_count++;
-            if (removed_ids.find(val.second) == removed_ids.end()) {
-                // 优化4：修正语义不一致。RTree 用的是 intersects(包含边界), 这里之前用 within(不包含边界) 是有 Bug 的。
-                if (bg::intersects(val.first, box)) result.push_back(val);
-            }
-        }
-        return result;
-    }
-    std::vector<Value> knn_report(const geobase::Point& q, size_t k) const {
-        query_lookup_count = 0;
-        update_cache();
-        auto calc_sqr_dist = [](const geobase::Point& p1, const BoostPoint& p2) {
-            double dx = p1.x - p2.get<0>(), dy = p1.y - p2.get<1>();
-            return dx*dx + dy*dy;
-        };
-        std::priority_queue<std::pair<double, Value>, std::vector<std::pair<double, Value>>, MaxHeapCmp> max_heap;
-        for (const auto& val : insert_log) {
-            query_lookup_count++;
-            if (removed_ids.find(val.second) == removed_ids.end()) {
-                double dist = calc_sqr_dist(q, val.first);
-                if (max_heap.size() < k) max_heap.push({dist, val});
-                else if (dist < max_heap.top().first) { max_heap.pop(); max_heap.push({dist, val}); }
-            }
-        }
-        
-        BoostPoint bg_q(q.x, q.y);
-        auto is_alive = [this](Value const& v) { query_lookup_count++; return removed_ids.find(v.second) == removed_ids.end(); };
-        
-        for (auto it = snapshot->qbegin(bgi::nearest(bg_q, (unsigned)k) && bgi::satisfies(is_alive)); it != snapshot->qend(); ++it) {
-            double dist = calc_sqr_dist(q, it->first);
-            if (max_heap.size() < k) {
-                max_heap.push({dist, *it});
-            } else if (dist < max_heap.top().first) { 
-                max_heap.pop(); max_heap.push({dist, *it}); 
-            } else {
-                break; // 优化5：提前终止！如果树里找出的点已经比 max_heap 里的点更远，后续的树节点只会更远，直接打断 RTree 遍历！
-            }
-        }
-        
-        std::vector<Value> result;
-        while (!max_heap.empty()) { result.push_back(max_heap.top().second); max_heap.pop(); }
-        return result;
-    }
-    size_t size() const { return snapshot->size() + insert_log.size() + remove_log.size(); }
-};
-
-struct BranchRes { double fork_ms; double commit_ms; double merge_ms; double mem_mb; };
-
-
-
-
-
-
-
-
-std::pair<double, double> mem_cpambb(const CPAMBB::zmap& latest_branch) {
-    return {cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0), 0.0};
-}
-
-
-std::pair<double, double> mem_mvzd() { 
-    return {mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0), 0.0}; 
-}
-
-std::pair<double, double> mem_rlog(const RlogTree& master, const std::vector<RlogBranch>& history) {
-    double rtree_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-    double delta_mem = 0;
-    for (const auto& b : history) {
-        delta_mem += (b.insert_log.capacity() + b.remove_log.capacity()) * sizeof(Value);
-    }
-    delta_mem += (master.insert_log.capacity() + master.remove_log.capacity()) * sizeof(Value);
-    delta_mem += unordered_set_mem_estimate(master.removed_ids.bucket_count()) + master.removed_ids.size() * sizeof(size_t);
-    return {rtree_mem, delta_mem / (1024.0 * 1024.0)};
-}
-void log_branch(ofstream& fout, const string& algo, int batch_idx, BranchRes res) {
-    fout << std::flush;
-    fout << algo << " | " << batch_idx << " | " << res.fork_ms << " | " << res.commit_ms << " | " << res.merge_ms << " | " << res.mem_mb << "\n";
-}
+#include <silva/baselines/rlog_tree.hpp>
+#include <silva/core/benchmark_utils.hpp>
 
 struct YearData { int year; vector<parlay::sequence<geobase::Point>> batches; };
 
@@ -420,31 +215,31 @@ int main(int argc, char** argv) {
 
     double base_build_ms = 0.0;
     // Tree definitions
-    mvq::Tree* mvzd_tree = nullptr;
-    shared_ptr<mvq::BaseNode> mvzd_master;
-    CPAMBB::zmap cpambb_master;
+    mvq::Tree* mvq_tree = nullptr;
+    shared_ptr<mvq::BaseNode> mvq_master;
+    PACZ::zmap pacz_master;
     RlogTree *rlog_master[6];
-    std::vector<shared_ptr<mvq::BaseNode>> mvzd_global_history;
-    std::vector<CPAMBB::zmap> cpambb_global_history;
+    std::vector<shared_ptr<mvq::BaseNode>> mvq_global_history;
+    std::vector<PACZ::zmap> pacz_global_history;
     std::vector<RlogBranch> rlog_global_history[6];
 
     auto sub_pts = P_base_set.substr(0, min((size_t)10000, P_base_set.size()));
-    if (run_algo == "MVZD" || run_algo == "all") {
+    if (run_algo == "MVQ" || run_algo == "all") {
         mvq::Tree dummy(mvq::Config::get().leaf_size);
         dummy.build(sub_pts);
-        mvzd_tree = new mvq::Tree(mvq::Config::get().leaf_size);
+        mvq_tree = new mvq::Tree(mvq::Config::get().leaf_size);
         cpam::timer t_b;
-        mvzd_tree->build(P_base_set);
+        mvq_tree->build(P_base_set);
         base_build_ms = t_b.stop() * 1000.0;
-        mvzd_master = mvzd_tree->root;
-        mvzd_global_history.push_back(mvzd_master);
+        mvq_master = mvq_tree->root;
+        mvq_global_history.push_back(mvq_master);
     }
-    if (run_algo == "CPAMBB" || run_algo == "all") {
-        auto dummy = CPAMBB::map_init(sub_pts, false);
+    if (run_algo == "PACZ" || run_algo == "all") {
+        auto dummy = PACZ::map_init(sub_pts, false);
         cpam::timer t_b;
-        cpambb_master = CPAMBB::map_init(P_base_set, false);
+        pacz_master = PACZ::map_init(P_base_set, false);
         base_build_ms = t_b.stop() * 1000.0;
-        cpambb_global_history.push_back(cpambb_master);
+        pacz_global_history.push_back(pacz_master);
     }
     std::vector<std::pair<BoostPoint, size_t>> P_base_conv;
     if (run_algo.find("Rlog") != string::npos || run_algo == "all") {
@@ -532,7 +327,7 @@ int main(int argc, char** argv) {
         parlay::sequence<geobase::Point> shared_out(n + 100000);
 
         auto run_range_set = [&](const parlay::sequence<geobase::Bounding_Box>& qs, string q_label) {
-            if (run_algo == "MVZD" || run_algo == "all") {
+            if (run_algo == "MVQ" || run_algo == "all") {
                 for(size_t i=0; i<qs.size(); i++) {
                     geobase::Bounding_Box q_copy = qs[i];
                     size_t cnt = 0;
@@ -540,15 +335,15 @@ int main(int argc, char** argv) {
                     cpam::timer t_q;
                     for (int rep = 0; rep < 3; rep++) {
                         cnt = 0; h = 0; mvq::query_nodes_touched = 0;
-                        mvzd_tree->range_report(mvzd_master, q_copy, mvq::Config::get().largest_mbr, cnt, shared_out);
+                        mvq_tree->range_report(mvq_master, q_copy, mvq::Config::get().largest_mbr, cnt, shared_out);
                         for(size_t j=0; j<cnt; j++) h += shared_out[j].id;
                     }
                     double q_ms = (t_q.stop() * 1000.0) / 3.0;
-                    auto mems = mem_mvzd();
-                    fout << "MVZD | " << q_label << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << mvq::query_nodes_touched.load() << "\n";
+                    auto mems = mem_mvq();
+                    fout << "MVQ | " << q_label << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << mvq::query_nodes_touched.load() << "\n";
                 }
             }
-            if (run_algo == "CPAMBB" || run_algo == "all") {
+            if (run_algo == "PACZ" || run_algo == "all") {
                 for(size_t i=0; i<qs.size(); i++) {
                     geobase::Bounding_Box q_copy = qs[i];
                     size_t cnt = 0;
@@ -557,13 +352,13 @@ int main(int argc, char** argv) {
                     for (int rep = 0; rep < 3; rep++) {
                         cpam::cpam_query_nodes_touched = 0;
                         h = 0;
-                        cnt = CPAMBB::range_report(cpambb_master, q_copy, shared_out, false);
+                        cnt = PACZ::range_report(pacz_master, q_copy, shared_out, false);
                         for(size_t j=0; j<cnt; j++) h += shared_out[j].id;
                     }
                     double q_ms = (t_q.stop() * 1000.0) / 3.0;
-                    auto mems = mem_cpambb(cpambb_master);
+                    auto mems = mem_pacz(pacz_master);
                     size_t est_nodes = cpam::cpam_query_nodes_touched.load();
-                    fout << "CPAMBB | " << q_label << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << est_nodes << "\n";
+                    fout << "PACZ | " << q_label << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << est_nodes << "\n";
                 }
             }
             if (run_algo.find("Rlog") != string::npos || run_algo == "all") {
@@ -596,23 +391,23 @@ int main(int argc, char** argv) {
 
         for(size_t K : K_list) {
             string qk = "KNN_" + to_string(K);
-            if (run_algo == "MVZD" || run_algo == "all") {
+            if (run_algo == "MVQ" || run_algo == "all") {
                 for(size_t i=0; i<100; i++) {
                     size_t cnt = 0;
                     size_t h = 0;
                     cpam::timer t_q;
                     for (int rep = 0; rep < 3; rep++) {
                         h = 0; mvq::query_nodes_touched = 0;
-                        auto res = mvzd_tree->knn_report(K, current_knn[i], mvq::Config::get().largest_mbr);
+                        auto res = mvq_tree->knn_report(K, current_knn[i], mvq::Config::get().largest_mbr);
                         cnt = res.size();
                         while(!res.empty()) { h += res.top().first.id; res.pop(); }
                     }
                     double q_ms = (t_q.stop() * 1000.0) / 3.0;
-                    auto mems = mem_mvzd();
-                    fout << "MVZD | " << qk << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << mvq::query_nodes_touched.load() << "\n";
+                    auto mems = mem_mvq();
+                    fout << "MVQ | " << qk << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << mvq::query_nodes_touched.load() << "\n";
                 }
             }
-            if (run_algo == "CPAMBB" || run_algo == "all") {
+            if (run_algo == "PACZ" || run_algo == "all") {
                 for(size_t i=0; i<100; i++) {
                     size_t cnt = 0;
                     size_t h = 0;
@@ -620,14 +415,14 @@ int main(int argc, char** argv) {
                     for (int rep = 0; rep < 3; rep++) {
                         cpam::cpam_query_nodes_touched = 0;
                         h = 0;
-                        auto res = CPAMBB::knn(cpambb_master, current_knn[i], K);
+                        auto res = PACZ::knn(pacz_master, current_knn[i], K);
                         cnt = res.size();
                         while(!res.empty()) { h += res.top().first.id; res.pop(); }
                     }
                     double q_ms = (t_q.stop() * 1000.0) / 3.0;
-                    auto mems = mem_cpambb(cpambb_master);
+                    auto mems = mem_pacz(pacz_master);
                     size_t est_nodes = cpam::cpam_query_nodes_touched.load();
-                    fout << "CPAMBB | " << qk << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << est_nodes << "\n";
+                    fout << "PACZ | " << qk << " | " << i << " | " << cnt << " | " << h << " | " << q_ms << " | " << mems.first << " | " << mems.second << " | " << est_nodes << "\n";
                 }
             }
             if (run_algo.find("Rlog") != string::npos || run_algo == "all") {
@@ -722,28 +517,28 @@ int main(int argc, char** argv) {
             
             double delta_data_mb = (adds.size() * 24.0 - rems.size() * 24.0) / (1024.0 * 1024.0);
 
-            if (run_algo == "MVZD" || run_algo == "all") {
-                auto prev_mems = mem_mvzd(); double prev_mem = prev_mems.first + prev_mems.second;
+            if (run_algo == "MVQ" || run_algo == "all") {
+                auto prev_mems = mem_mvq(); double prev_mem = prev_mems.first + prev_mems.second;
                 cpam::timer t_c;
                 auto sorted_adds = geobase::get_sorted_points(adds);
                 auto sorted_rems = geobase::get_sorted_points(rems);
-                mvzd_master = mvzd_tree->commit(mvzd_master, sorted_adds, sorted_rems);
+                mvq_master = mvq_tree->commit(mvq_master, sorted_adds, sorted_rems);
                 double cur_ms = t_c.stop() * 1000.0;
                 accumulated_commit_ms += cur_ms;
-                mvzd_global_history.push_back(mvzd_master);
-                double new_mem = mem_mvzd().first + mem_mvzd().second;
-                commit_fout << "MVZD | " << cs_id_log << " | " << ev_year_log << " | " << adds.size() << " | " << rems.size() << " | " << cur_ms << " | " << new_mem << " | " << (new_mem - prev_mem) << " | " << delta_data_mb << "\n";
+                mvq_global_history.push_back(mvq_master);
+                double new_mem = mem_mvq().first + mem_mvq().second;
+                commit_fout << "MVQ | " << cs_id_log << " | " << ev_year_log << " | " << adds.size() << " | " << rems.size() << " | " << cur_ms << " | " << new_mem << " | " << (new_mem - prev_mem) << " | " << delta_data_mb << "\n";
             }
-            if (run_algo == "CPAMBB" || run_algo == "all") {
-                auto prev_mems = mem_cpambb(cpambb_master); double prev_mem = prev_mems.first + prev_mems.second;
+            if (run_algo == "PACZ" || run_algo == "all") {
+                auto prev_mems = mem_pacz(pacz_master); double prev_mem = prev_mems.first + prev_mems.second;
                 cpam::timer t_c;
-                auto v_cpambb = CPAMBB::map_insert(adds, cpambb_master);
-                if (rems.size() > 0) v_cpambb = CPAMBB::map_delete(rems, v_cpambb);
+                auto v_pacz = PACZ::map_insert(adds, pacz_master);
+                if (rems.size() > 0) v_pacz = PACZ::map_delete(rems, v_pacz);
                 double cur_ms = t_c.stop() * 1000.0;
                 accumulated_commit_ms += cur_ms;
-                cpambb_master = v_cpambb;
-                double new_mem = mem_cpambb(cpambb_master).first + mem_cpambb(cpambb_master).second;
-                commit_fout << "CPAMBB | " << cs_id_log << " | " << ev_year_log << " | " << adds.size() << " | " << rems.size() << " | " << cur_ms << " | " << new_mem << " | " << (new_mem - prev_mem) << " | " << delta_data_mb << "\n";
+                pacz_master = v_pacz;
+                double new_mem = mem_pacz(pacz_master).first + mem_pacz(pacz_master).second;
+                commit_fout << "PACZ | " << cs_id_log << " | " << ev_year_log << " | " << adds.size() << " | " << rems.size() << " | " << cur_ms << " | " << new_mem << " | " << (new_mem - prev_mem) << " | " << delta_data_mb << "\n";
             }
             if (run_algo.find("Rlog") != string::npos || run_algo == "all") {
                 string names[] = {"Rlog_1yr", "Rlog_2yr", "Rlog_3yr", "Rlog_4yr", "Rlog_5yr", "Rlog_NoSnap"};

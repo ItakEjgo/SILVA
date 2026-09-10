@@ -1,6 +1,6 @@
 #include <atomic>
 #pragma once
-// --- From mvzd/src/mvq/node.hpp ---
+// --- From mvq/src/mvq/node.hpp ---
 #include <silva/core/global_config.hpp>
 #include <silva/geo/point.hpp>
 #include <silva/geo/operations.hpp>
@@ -119,7 +119,7 @@ namespace mvq{
 
 
 
-// --- From mvzd/src/mvq/tree.hpp ---
+// --- From mvq/src/mvq/tree.hpp ---
 class Tree{
 	public:
 		size_t visited_leaf = 0;
@@ -264,7 +264,7 @@ class Tree{
 
 }
 
-// --- From mvzd/src/mvq/tree_impl.hpp ---
+// --- From mvq/src/mvq/tree_impl.hpp ---
 namespace mvq {
 
 
@@ -798,7 +798,7 @@ namespace mvq {
 
 }
 
-// --- From mvzd/src/mvq/query.hpp ---
+// --- From mvq/src/mvq/query.hpp ---
 namespace mvq {
 	size_t Tree::range_count_node(shared_ptr<BaseNode> &x, Bounding_Box &query_mbr, Bounding_Box &cur_mbr, FT x_prefix, FT y_prefix, size_t b, bool x_splitter){
 		// print_mbr(cur_mbr);
@@ -996,7 +996,7 @@ namespace mvq {
 
 }
 
-// --- From mvzd/src/mvq/versioning.hpp ---
+// --- From mvq/src/mvq/versioning.hpp ---
 namespace mvq {
 	auto Tree::commit(shared_ptr<BaseNode> &old_version, sequence<Point> &P_insert, sequence<Point> &P_delete){
 		// parlay::internal::timer t("zdtree breakdown", true);

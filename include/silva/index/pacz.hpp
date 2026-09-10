@@ -15,7 +15,7 @@
 #define SEQ
 
 
-namespace CPAMBB{
+namespace PACZ{
 	using namespace std;
 	using namespace geobase;
 	using parlay::sequence;

@@ -1,6 +1,6 @@
 #pragma once
 #include "test_utils.hpp"
-namespace CPAMBB{
+namespace PACZ{
 
 
 	template<typename PT>
@@ -38,8 +38,8 @@ namespace CPAMBB{
 			update_mbr = updove_mbr;
 		}
 
-		vector<CPAMBB::zmap> all_versions;
-		CPAMBB::zmap tree;
+		vector<PACZ::zmap> all_versions;
+		PACZ::zmap tree;
 
 		/* Build initial version */
 		auto build_avg = time_loop(
@@ -47,12 +47,12 @@ namespace CPAMBB{
 				tree.clear();
 			},
             [&]() {
-				tree = CPAMBB::map_init(P);	// initi
+				tree = PACZ::map_init(P);	// initi
             },
    	    	[&](){
 			});
 
-		cout << "[cpambb init build time]: " << fixed << setprecision(6) << build_avg << " Seconds" << endl;
+		cout << "[pacz init build time]: " << fixed << setprecision(6) << build_avg << " Seconds" << endl;
 
 		all_versions.emplace_back(tree);
 
@@ -81,7 +81,7 @@ namespace CPAMBB{
 					new_ver[i].clear();
 				},
 				[&]() {
-					new_ver[i] = CPAMBB::map_commit(all_versions[i], P_insert[i], P_delete[i]);
+					new_ver[i] = PACZ::map_commit(all_versions[i], P_insert[i], P_delete[i]);
 				},
 				[&](){});
 
@@ -97,8 +97,8 @@ namespace CPAMBB{
 				cur_inte_num += tmp_inte_num, cur_leaf_num += tmp_leaf_num;
 			}
 			cout << "[new ver commit time]: " << fixed << setprecision(6) << commit_avg << " Seconds" << endl;
-			cout << "[cpambb memory usage]: " << (cur_mem - prev_mem) / 1024.0 / 1024.0  << " MB" << endl;
-			cout << "[cpambb node nums]: " << cur_inte_num - pre_inte_num << " interior nodes, " << cur_leaf_num - pre_leaf_num << " leaf nodes" << endl;
+			cout << "[pacz memory usage]: " << (cur_mem - prev_mem) / 1024.0 / 1024.0  << " MB" << endl;
+			cout << "[pacz node nums]: " << cur_inte_num - pre_inte_num << " interior nodes, " << cur_leaf_num - pre_leaf_num << " leaf nodes" << endl;
 			prev_mem = cur_mem;
 			pre_inte_num = cur_inte_num;
 			pre_leaf_num = cur_leaf_num;
@@ -108,7 +108,7 @@ namespace CPAMBB{
 	template<typename PT, typename RQ>
 	void plain_spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
 		/*  build tree */
-		auto cpambb0 = CPAMBB::map_init(P);	//	initial version
+		auto pacz0 = PACZ::map_init(P);	//	initial version
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
 		/* get insert, delete points */
 		auto P_test = geobase::shuffle_point(P, max_batch_size);
@@ -123,7 +123,7 @@ namespace CPAMBB{
 			auto P_delete = P_delete_set.substr(0, delete_num);
 
 			auto P_newver = geobase::collect_newver_point(P, P_insert, P_delete);
-			auto cpambb1 = CPAMBB::map_init(P_newver);
+			auto pacz1 = PACZ::map_init(P_newver);
 
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -137,7 +137,7 @@ namespace CPAMBB{
 					[&](){},
 					[&](){
 						diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-						CPAMBB::plain_map_spatial_diff(cpambb0, cpambb1, range_queries[i], ret_diff, l_pts, r_pts);
+						PACZ::plain_map_spatial_diff(pacz0, pacz1, range_queries[i], ret_diff, l_pts, r_pts);
 						ret_diff.compact();
 						addCnt[i] = ret_diff.add.size();
 						removeCnt[i] = ret_diff.remove.size();
@@ -148,7 +148,7 @@ namespace CPAMBB{
 			}
 
 			#ifdef TEST
-				string file_name = "output/cpambb_spatial_diff_plain-" + to_string(batch_size); 
+				string file_name = "output/pacz_spatial_diff_plain-" + to_string(batch_size); 
 				ofstream spatialDiffOut(file_name);
 				for (size_t i = 0; i < range_queries.size(); i++){
 					spatialDiffOut<< addCnt[i] << " " << removeCnt[i] << endl;
@@ -160,7 +160,7 @@ namespace CPAMBB{
 	template<typename PT, typename RQ>
     void spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
         /*  build tree */
-		auto cpambb0 = CPAMBB::map_init(P);	//	initial version
+		auto pacz0 = PACZ::map_init(P);	//	initial version
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
 
         /* get insert, delete points */
@@ -175,8 +175,8 @@ namespace CPAMBB{
 			auto P_insert = P_insert_set.substr(0, insert_num);
 			auto P_delete = P_delete_set.substr(0, delete_num);
 
-			auto cpambb1 = CPAMBB::map_delete(P_delete, cpambb0); 
-			auto cpambb2 = CPAMBB::map_insert(P_insert, cpambb1);	//	new	version
+			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZ::map_insert(P_insert, pacz1);	//	new	version
         
         	parlay::sequence<size_t> addCnt(range_queries.size());
         	parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -190,7 +190,7 @@ namespace CPAMBB{
 					[&](){
 						// for (size_t i = 0; i < range_queries.size(); i++){
 							diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-							CPAMBB::plain_map_spatial_diff(cpambb0, cpambb2, range_queries[i], ret_diff, l_pts, r_pts);
+							PACZ::plain_map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff, l_pts, r_pts);
 							ret_diff.compact();
 							addCnt[i] = ret_diff.add.size();
 							removeCnt[i] = ret_diff.remove.size();
@@ -203,7 +203,7 @@ namespace CPAMBB{
 			
         
 			#ifdef TEST
-        		string file_name = "output/cpambb_spatial_diff-" + to_string(batch_size); 
+        		string file_name = "output/pacz_spatial_diff-" + to_string(batch_size); 
         		ofstream spatialDiffOut(file_name);
         		for (size_t i = 0; i < range_queries.size(); i++){
             		spatialDiffOut<< addCnt[i] << " " << removeCnt[i] << endl;
@@ -215,7 +215,7 @@ namespace CPAMBB{
 	/*	50% insertion, 50% deletion	*/
 	template<typename PT, typename RQ>
 	auto spatial_diff_test_fix_size(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto cpambb0 = CPAMBB::map_init(P);	//	initial version
+		auto pacz0 = PACZ::map_init(P);	//	initial version
 
 		for (auto &batch_size: batch_sizes){
 			if (batch_size > P.size()) break;
@@ -233,8 +233,8 @@ namespace CPAMBB{
 
 			cout << "# of insertion/deletion: " << P_insert.size() << ", " << P_delete.size();
 	
-			auto cpambb1 = CPAMBB::map_delete(P_delete, cpambb0); 
-			auto cpambb2 = CPAMBB::map_insert(P_insert, cpambb1);	//	new	version
+			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZ::map_insert(P_insert, pacz1);	//	new	version
 	
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -244,14 +244,14 @@ namespace CPAMBB{
 				[&]() {
 					parlay::parallel_for(0, range_queries.size(), [&](int i){
 						diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-						CPAMBB::map_spatial_diff(cpambb0, cpambb2, range_queries[i], ret_diff);
+						PACZ::map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff);
 						ret_diff.compact();
 						addCnt[i] = ret_diff.add.size();
 						removeCnt[i] = ret_diff.remove.size();
 					});
 				},
 			[&](){} );
-			cout << fixed << setprecision(6) << "[CPAMBB] spatial-diff time (avg): " << diff_avg << endl;
+			cout << fixed << setprecision(6) << "[PACZ] spatial-diff time (avg): " << diff_avg << endl;
 		}
 	}
 	
@@ -259,7 +259,7 @@ namespace CPAMBB{
 	/*	50% insertion, 50% deletion	*/
 	template<typename PT, typename RQ>
 	auto spatial_diff_test_fix_ratio(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto cpambb0 = CPAMBB::map_init(P);	//	initial version
+		auto pacz0 = PACZ::map_init(P);	//	initial version
 
 		for (auto &batch_size: batch_sizes){
 			if (batch_size > P.size()) break;
@@ -274,8 +274,8 @@ namespace CPAMBB{
 
 			cout << "# of insertion/deletion: " << P_insert.size() << ", " << P_delete.size();
 	
-			auto cpambb1 = CPAMBB::map_delete(P_delete, cpambb0); 
-			auto cpambb2 = CPAMBB::map_insert(P_insert, cpambb1);	//	new	version
+			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZ::map_insert(P_insert, pacz1);	//	new	version
 	
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -285,20 +285,20 @@ namespace CPAMBB{
 				[&]() {
 					parlay::parallel_for(0, range_queries.size(), [&](int i){
 						diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-						CPAMBB::map_spatial_diff(cpambb0, cpambb2, range_queries[i], ret_diff);
+						PACZ::map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff);
 						ret_diff.compact();
 						addCnt[i] = ret_diff.add.size();
 						removeCnt[i] = ret_diff.remove.size();
 					});
 				},
 			[&](){} );
-			cout << fixed << setprecision(6) << "[CPAMBB] spatial-diff time (avg): " << diff_avg << endl;
+			cout << fixed << setprecision(6) << "[PACZ] spatial-diff time (avg): " << diff_avg << endl;
 		}
 	}
 
 	template<typename PT, typename RQ>
 	auto spatial_diff_test(PT P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool &early_end, bool use_hilbert = false){
-		auto cpambb0 = CPAMBB::map_init(P);	//	initial version
+		auto pacz0 = PACZ::map_init(P);	//	initial version
 
 		for (auto &batch_size: batch_sizes){
 			if (batch_size > P.size()) batch_size = P.size();
@@ -311,8 +311,8 @@ namespace CPAMBB{
 				P_insert[j].id += P.size();
 			});
 
-			auto cpambb1 = CPAMBB::map_delete(P_delete, cpambb0); 
-			auto cpambb2 = CPAMBB::map_insert(P_insert, cpambb0);	//	new	version
+			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZ::map_insert(P_insert, pacz0);	//	new	version
 
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -323,19 +323,19 @@ namespace CPAMBB{
 
 
 			if (!early_end){
-				decltype(cpambb0) commit_ver;
+				decltype(pacz0) commit_ver;
 	    		auto commit_avg = time_loop(
 		    		3, 1.0, [&]() {
 						commit_ver.clear();
 					},
 		    		[&]() {
-						commit_ver = CPAMBB::map_commit(cpambb0, P_insert, P_delete);
+						commit_ver = PACZ::map_commit(pacz0, P_insert, P_delete);
 		    		},
 	    			[&](){} 
 				);
 
 				parlay::sequence<Point> conflict_insert, conflict_update, conflict_delete;
-				decltype(cpambb0) merge_ver;
+				decltype(pacz0) merge_ver;
 				auto merge_avg = time_loop(
 		    		3, 1.0, [&]() {
 						merge_ver.clear();
@@ -344,13 +344,13 @@ namespace CPAMBB{
 						conflict_delete.clear();
 					},
 		    		[&]() {
-						tie(merge_ver, conflict_insert, conflict_update, conflict_delete) = CPAMBB::map_merge(cpambb0, cpambb1, cpambb2);
+						tie(merge_ver, conflict_insert, conflict_update, conflict_delete) = PACZ::map_merge(pacz0, pacz1, pacz2);
 		    		},
 	    			[&](){} 
 				);
 				cout << "[INFO] commit, merge size: " << commit_ver.size() << ", " << merge_ver.size() << endl; 
-				cout << fixed << setprecision(6) << "[CPAMBB]: spatial-commit time (avg): " << commit_avg << endl;
-				cout << fixed << setprecision(6) << "[CPAMBB]: spatial-merge time (avg): " << merge_avg << endl;
+				cout << fixed << setprecision(6) << "[PACZ]: spatial-commit time (avg): " << commit_avg << endl;
+				cout << fixed << setprecision(6) << "[PACZ]: spatial-merge time (avg): " << merge_avg << endl;
 			}
 
 		}
@@ -362,7 +362,7 @@ namespace CPAMBB{
 	template<typename PT>
 	void multi_version_query_test(PT P, string query_dir, int batch_percent = 10, int version_num = 6){
 		// build zdtree initial version
-		auto CPAMZ = CPAMBB::map_init(P);
+		auto CPAMZ = PACZ::map_init(P);
 		cout << "build finished" << endl;
 
 		auto num_insert_version = version_num / 2;
@@ -380,7 +380,7 @@ namespace CPAMBB{
 				P_insert[j].id += (i + 1) * P.size();
 			});
 
-			all_versions[i + 1] = CPAMBB::map_insert(P_insert, all_versions[i]); 
+			all_versions[i + 1] = PACZ::map_insert(P_insert, all_versions[i]); 
 		}
 		cout << "insert finished" << endl;	
 		//	delete 3 versions
@@ -391,7 +391,7 @@ namespace CPAMBB{
 				P_delete[j].id += (i + 1) * P.size();
 			});
 			
-			all_versions[i + 4] = CPAMBB::map_delete(P_delete, all_versions[i + 3]); 
+			all_versions[i + 4] = PACZ::map_delete(P_delete, all_versions[i + 3]); 
 			// all_versions.push_back(new_version);
 		}
 		cout << "delete finished" << endl;	
@@ -410,7 +410,7 @@ namespace CPAMBB{
 						parlay::parallel_for(
 							0, range_count_querys.size(),
 							[&]( size_t k ) {
-								rangeCnt[k] = CPAMBB::range_count(all_versions[j], range_count_querys[k]); 
+								rangeCnt[k] = PACZ::range_count(all_versions[j], range_count_querys[k]); 
 						});
 					},
 				[&](){} );
@@ -438,7 +438,7 @@ namespace CPAMBB{
 						parlay::parallel_for(
 							0, range_report_querys.size(),
 							[&]( size_t k ) {
-		    					rangeCnt[k] = CPAMBB::range_report(all_versions[j], range_report_querys[k]).size();
+		    					rangeCnt[k] = PACZ::range_report(all_versions[j], range_report_querys[k]).size();
 						});
 					},
 				[&](){} );
@@ -455,7 +455,7 @@ namespace CPAMBB{
 
 	template<typename PT>
 	void diff_test(PT P, int batch_percent = 10, bool use_hilbert = false){
-		auto cpambb0 = CPAMBB::map_init(P);	//	initial version
+		auto pacz0 = PACZ::map_init(P);	//	initial version
 
 		auto batch_size = P.size() * batch_percent / 100;	//	insertion 10%
 		auto P_insert = P.substr(0, batch_size);
@@ -465,14 +465,14 @@ namespace CPAMBB{
 
 		auto P_delete = P.substr(0, 2 * batch_size);
 
-		auto cpambb1 = CPAMBB::map_insert(P_insert, cpambb0);	//	new	version
-		cpambb1 = CPAMBB::map_delete(P_delete, cpambb1); 
+		auto pacz1 = PACZ::map_insert(P_insert, pacz0);	//	new	version
+		pacz1 = PACZ::map_delete(P_delete, pacz1); 
 
 		auto add_sz = 0, remove_sz = 0;
 	    auto cpam_diff_avg = time_loop(
 		    3, 1.0, [&]() {},
 		    [&]() {
-				auto [add, remove] = CPAMBB::map_diff(cpambb0, cpambb1);
+				auto [add, remove] = PACZ::map_diff(pacz0, pacz1);
 				add_sz = add.size();
 				remove_sz = remove.size();
 		    },
@@ -481,25 +481,25 @@ namespace CPAMBB{
 
 		cout << "add size: " << add_sz << endl;
 		cout << "remove size: " << remove_sz << endl;
-		if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-		else cout << "[Zorder-CPAMBB]: ";
-		cout << fixed << setprecision(6) << "CPAMBB diff time (avg): " << cpam_diff_avg << endl;
+		if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+		else cout << "[Zorder-PACZ]: ";
+		cout << fixed << setprecision(6) << "PACZ diff time (avg): " << cpam_diff_avg << endl;
 	}
 
 
 	template<typename PT>
 	void build_test(PT P, bool use_hilbert = false){
-		CPAMBB::zmap tree;
+		PACZ::zmap tree;
 
 		auto cpam_build_avg = time_loop(
 			3, 1.0, [&](){
 				tree.clear();
 			},
 			[&](){
-				tree = CPAMBB::map_init(P);
+				tree = PACZ::map_init(P);
 			},
 		[&](){} );
-		// auto [mem_inte_nodes, mem_leaf_nodes] = CPAMBB::size_in_bytes();
+		// auto [mem_inte_nodes, mem_leaf_nodes] = PACZ::size_in_bytes();
 		auto [num_inte_nodes, num_leaf_nodes, leaf_size] = tree.node_stats();
 		// cout << "leaf sz = " << 1.0 * leaf_size / 1024.0 / 1024.0 << " MB" << endl;
 
@@ -507,24 +507,24 @@ namespace CPAMBB{
 			return 0;
 		};
 
-		cout << "[cpambb memory usage]: " << endl <<
+		cout << "[pacz memory usage]: " << endl <<
 			"[# of inte nodes]: " << num_inte_nodes << endl << 
 			"[# of leaf nodes]: " << num_leaf_nodes << endl <<
 			"[tree size]: " << 1.0 * tree.size_in_bytes(f_noop) / 1024.0 / 1024.0 << " MB" << endl;
 			// "[memory usage for inte nodes]: " << 1.0 * mem_inte_nodes / 1024.0 / 1024.0 << " MB" << endl <<
 			// "[memory usage for leaf nodes]: " << 1.0 * mem_leaf_nodes / 1024.0 / 1024.0 << " MB"  << endl;
 
-		// cout << "cpambb print stats: " << endl;
-		// CPAMBB::print_stats();
+		// cout << "pacz print stats: " << endl;
+		// PACZ::print_stats();
 
-		if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-		else cout << "[Zorder-CPAMBB]: ";
+		if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+		else cout << "[Zorder-PACZ]: ";
 		cout << fixed << setprecision(6) << "build time (avg): " << cpam_build_avg << endl;
 	}
 
 	template<class PT, class RQ>
     void range_count_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false){
-	    auto tree = CPAMBB::map_init(P, use_hilbert);
+	    auto tree = PACZ::map_init(P, use_hilbert);
 
 		parlay::sequence<size_t> rangeCnt(querys.size());
 
@@ -535,7 +535,7 @@ namespace CPAMBB{
 				3, 1.0, 
 				[&]() {},
 				[&]() {					
-					rangeCnt[i] = CPAMBB::range_count(tree, querys[i], use_hilbert);
+					rangeCnt[i] = PACZ::range_count(tree, querys[i], use_hilbert);
 				},
 				[&](){} );
 			if (rangeCnt[i] != cnt[i]){
@@ -551,7 +551,7 @@ namespace CPAMBB{
 
 	template<class PT, class RQ>
     void range_report_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false, size_t par_for_granularity = 100){
-	    auto tree = CPAMBB::map_init(P, use_hilbert);
+	    auto tree = PACZ::map_init(P, use_hilbert);
 
 		// parlay::sequence<Bounding_Box> q2(querys.size());
 		parlay::sequence<size_t> rangeCnt(querys.size());
@@ -568,15 +568,15 @@ namespace CPAMBB{
 			[&]() {					
 				// for (size_t i = 0; i < querys.size(); i++){
 				parlay::parallel_for(0, querys.size(), [&](size_t i){
-					rangeCnt[i] = CPAMBB::range_report(tree, querys[i], rangeReport[i], use_hilbert);
+					rangeCnt[i] = PACZ::range_report(tree, querys[i], rangeReport[i], use_hilbert);
 				});
 				// }
 			},
 			[&](){} 
 		);
 
-		if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-		else cout << "[CPAMBB]: ";
+		if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+		else cout << "[PACZ]: ";
 		cout << fixed << setprecision(6) << "range report time (avg): " << avg_time << endl;
 
 
@@ -593,8 +593,8 @@ namespace CPAMBB{
 		// cout << "[tot visted inte]: " << tot_inte << endl;
 		// cout << "[tot visted leaf]: " << tot_leaf << endl;
 
-		// if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-		// else cout << "[Zorder-CPAMBB]: ";
+		// if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+		// else cout << "[Zorder-PACZ]: ";
 		// cout << fixed << setprecision(6) << "range report time (avg): " << rangeReport_avg << endl;
 
 
@@ -602,7 +602,7 @@ namespace CPAMBB{
 
 	template<class PT>
     void knn_test(PT P, size_t k = 10, size_t q_num = 50000, bool use_hilbert = false){
-	    auto tree = CPAMBB::map_init(P, use_hilbert);
+	    auto tree = PACZ::map_init(P, use_hilbert);
 		
 		auto knn_sqrdis = parlay::sequence<size_t>::uninitialized(q_num);
 		
@@ -611,16 +611,16 @@ namespace CPAMBB{
 			[&]() {},
 			[&]() {					
 				for (size_t i = 0; i < q_num; i++){
-					knn_sqrdis[i] = CPAMBB::knn(tree, P[i], k).top().second;
+					knn_sqrdis[i] = PACZ::knn(tree, P[i], k).top().second;
 				}
 			},
 			[&](){} );
-		cout << fixed << setprecision(6) << "[CPAMBB] KNN Latency: " << avg_time << endl;
+		cout << fixed << setprecision(6) << "[PACZ] KNN Latency: " << avg_time << endl;
 
 
 
-		// if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-		// else cout << "[Zorder-CPAMBB]: ";
+		// if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+		// else cout << "[Zorder-PACZ]: ";
 		// cout << fixed << setprecision(6) << "knn report time (avg): " << rangeReport_avg << endl;
 
 		// /* Correctness Check */
@@ -632,7 +632,7 @@ namespace CPAMBB{
 	template<typename PT>
 	void batch_insert_test(PT P, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
 		auto n = P.size();
-		auto m1 = CPAMBB::map_init(P, use_hilbert);	//	build original tree
+		auto m1 = PACZ::map_init(P, use_hilbert);	//	build original tree
 		decltype(m1) m2;
 
 		auto rand_p = shuffle_point(P);
@@ -650,7 +650,7 @@ namespace CPAMBB{
 					m2.clear();
 				},
 		    	[&]() {
-					m2 = CPAMBB::map_insert(P2, m1, use_hilbert);
+					m2 = PACZ::map_insert(P2, m1, use_hilbert);
 		    	},
 	    	[&](){
 				if (print_flag){
@@ -660,8 +660,8 @@ namespace CPAMBB{
 			});
 
 			cout << "[batch_size]: " << num_processed << endl;
-			if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-			else cout << "[Zorder-CPAMBB]: ";
+			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+			else cout << "[Zorder-PACZ]: ";
 			cout << fixed << setprecision(6) << "batch insert time (avg): " << cpam_insert_avg << endl;
 		}
 
@@ -669,7 +669,7 @@ namespace CPAMBB{
 
 	template<typename PT>
 	void batch_delete_test(PT P, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto m1 = CPAMBB::map_init(P, use_hilbert);	//	build original tree
+		auto m1 = PACZ::map_init(P, use_hilbert);	//	build original tree
 		decltype(m1) m2;
 		auto rand_p = shuffle_point(P);
 
@@ -683,7 +683,7 @@ namespace CPAMBB{
 					m2.clear();
 				},
 		    	[&]() {
-					m2 = CPAMBB::map_delete(P2, m1, use_hilbert);
+					m2 = PACZ::map_delete(P2, m1, use_hilbert);
 		    	},
 	    	[&](){
 				if (print_flag){
@@ -693,8 +693,8 @@ namespace CPAMBB{
 			} );
 
 			cout << "[batch_size]: " << num_processed << endl;
-			if (use_hilbert) cout << "[Hilbert-CPAMBB]: ";
-			else cout << "[Zorder-CPAMBB]: ";
+			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
+			else cout << "[Zorder-PACZ]: ";
 			cout << fixed << setprecision(6) << "batch delete time (avg): " << cpam_insert_avg << endl;
 		}
 	}

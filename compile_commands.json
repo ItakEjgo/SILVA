@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/home/bhuan102/Research/SILVA/silva/build",
+  "command": "/usr/bin/c++  -I/home/bhuan102/Research/SILVA/silva/include -I/home/bhuan102/Research/SILVA/silva/third_party -I/home/bhuan102/Research/SILVA/silva/tests -std=gnu++20 -O3 -DNDEBUG -mcx16 -march=native -DHOMEGROWN -Wall -o CMakeFiles/main.dir/src/main.cpp.o -c /home/bhuan102/Research/SILVA/silva/src/main.cpp",
+  "file": "/home/bhuan102/Research/SILVA/silva/src/main.cpp",
+  "output": "CMakeFiles/main.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/bhuan102/Research/SILVA/silva/build",
+  "command": "/usr/bin/cc  -I/home/bhuan102/Research/SILVA/silva/include -I/home/bhuan102/Research/SILVA/silva/third_party -I/home/bhuan102/Research/SILVA/silva/tests -std=gnu11 -O3 -DNDEBUG -mcx16 -march=native -DHOMEGROWN -Wall -o CMakeFiles/main.dir/src/hilbert.c.o -c /home/bhuan102/Research/SILVA/silva/src/hilbert.c",
+  "file": "/home/bhuan102/Research/SILVA/silva/src/hilbert.c",
+  "output": "CMakeFiles/main.dir/src/hilbert.c.o"
+},
+{
+  "directory": "/home/bhuan102/Research/SILVA/silva/build",
+  "command": "/usr/bin/c++  -I/home/bhuan102/Research/SILVA/silva/include -I/home/bhuan102/Research/SILVA/silva/third_party -I/home/bhuan102/Research/SILVA/silva/tests -std=gnu++20 -O3 -DNDEBUG -mcx16 -march=native -DHOMEGROWN -Wall -o CMakeFiles/verify_bench.dir/benchmarks/verify_bench.cpp.o -c /home/bhuan102/Research/SILVA/silva/benchmarks/verify_bench.cpp",
+  "file": "/home/bhuan102/Research/SILVA/silva/benchmarks/verify_bench.cpp",
+  "output": "CMakeFiles/verify_bench.dir/benchmarks/verify_bench.cpp.o"
+},
+{
+  "directory": "/home/bhuan102/Research/SILVA/silva/build",
+  "command": "/usr/bin/cc  -I/home/bhuan102/Research/SILVA/silva/include -I/home/bhuan102/Research/SILVA/silva/third_party -I/home/bhuan102/Research/SILVA/silva/tests -std=gnu11 -O3 -DNDEBUG -mcx16 -march=native -DHOMEGROWN -Wall -o CMakeFiles/verify_bench.dir/src/hilbert.c.o -c /home/bhuan102/Research/SILVA/silva/src/hilbert.c",
+  "file": "/home/bhuan102/Research/SILVA/silva/src/hilbert.c",
+  "output": "CMakeFiles/verify_bench.dir/src/hilbert.c.o"
+}
+]

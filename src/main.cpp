@@ -9,13 +9,11 @@
 #include <parlay/hash_table.h>
 #include <cpam/parse_command_line.h>
 #include <silva/index/mvq.hpp>
-#include <silva/index/cpamz.hpp>
 #include <helper/time_loop.h>
 
 #include <silva/core/global_config.hpp>
 #include "test_mvq.hpp"
-#include "test_cpambb.hpp"
-#include "test_cpamz.hpp"
+#include "test_pacz.hpp"
 // #include "seq_zdtree.hpp"
 
 using namespace std;
@@ -40,13 +38,13 @@ void line_splitter(){
 // 		auto range_report_querys = geobase::read_range_query(report_qry_file, 8, mvq::Config::get().maxSize);
 
 // 		/* Big Test */
-// 		//CPAMBB
-// 		// CPAMBB::build_test(P, 0);
-// 		// CPAMBB::insert_test(P, batch_percent, 0);
-// 		// CPAMBB::delete_test(P, batch_percent, 0);
-// 		// CPAMBB::range_count_test(P, range_count_querys);
-// 		// CPAMBB::range_count_test(P, range_report_querys);
-// 		// CPAMBB::range_report_test(P, range_report_querys);
+// 		//PACZ
+// 		// PACZ::build_test(P, 0);
+// 		// PACZ::insert_test(P, batch_percent, 0);
+// 		// PACZ::delete_test(P, batch_percent, 0);
+// 		// PACZ::range_count_test(P, range_count_querys);
+// 		// PACZ::range_count_test(P, range_report_querys);
+// 		// PACZ::range_report_test(P, range_report_querys);
 // 		// line_splitter();
 	
 // 		// // BRTree, static binary rtree
@@ -60,19 +58,19 @@ void line_splitter(){
 // 		// // BRTest::range_report_test(P, range_report_querys, 1);
 // 		// // cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
 
-// 		// CPAMZ::build_test(P, 0);
-// 		// CPAMZ::insert_test(P, batch_percent, 0);
-// 		// CPAMZ::delete_test(P, batch_percent, 0);
-// 		// // CPAMZ::range_count_test(P, range_count_querys, 0);
-// 		// CPAMZ::range_report_test(P, range_report_querys, 0);
-// 		// // CPAMZ::range_report_test(P, range_report_querys, 1);
+// // 		// CPAMZ::build_test(P, 0);
+// // 		// CPAMZ::insert_test(P, batch_percent, 0);
+// // 		// CPAMZ::delete_test(P, batch_percent, 0);
+// // 		// // CPAMZ::range_count_test(P, range_count_querys, 0);
+// // 		// CPAMZ::range_report_test(P, range_report_querys, 0);
+// // 		// // CPAMZ::range_report_test(P, range_report_querys, 1);
 // 		// line_splitter();
 // 		// // cout << "-------------------------------------------------------" << endl;
-// 		// // CPAMZ::build_test(P, 1);
-// 		// // CPAMZ::insert_test(P, batch_percent, 1);
-// 		// // CPAMZ::delete_test(P, batch_percent, 1);
-// 		// // CPAMZ::range_report_test(P, range_report_querys, 1);
-// 		// // // CPAMZ::range_report_test(P, range_count_querys, 1);
+// // 		// // CPAMZ::build_test(P, 1);
+// // 		// // CPAMZ::insert_test(P, batch_percent, 1);
+// // 		// // CPAMZ::delete_test(P, batch_percent, 1);
+// // 		// // CPAMZ::range_report_test(P, range_report_querys, 1);
+// // 		// // // CPAMZ::range_report_test(P, range_count_querys, 1);
 // 		ZDTest::build_test(P);
 // 		// ZDTest::batch_insert_test(P, batch_percent);
 // 		ZDTest::range_count_test(P, range_count_querys);
@@ -91,18 +89,18 @@ void line_splitter(){
 // 		cout << "inserted data: " << insert_pts.size() << endl;
 // 		cout << "deleted data: " << delete_pts.size() << endl;
 
-// 		// CPAMZ::build_test(P, 0);
-// 		// CPAMZ::insert_test(P, batch_percent, 0);
-// 		// CPAMZ::delete_test(P, batch_percent, 0);
-// 		// CPAMZ::insert_test(P, insert_pts, 0);
-// 		// CPAMZ::delete_test(P, delete_pts, 0);
+// // 		// CPAMZ::build_test(P, 0);
+// // 		// CPAMZ::insert_test(P, batch_percent, 0);
+// // 		// CPAMZ::delete_test(P, batch_percent, 0);
+// // 		// CPAMZ::insert_test(P, insert_pts, 0);
+// // 		// CPAMZ::delete_test(P, delete_pts, 0);
 // 		// cout << "-------------------------------------------------------" << endl;
-// 		// CPAMZ::build_test(P, 1);
-// 		// CPAMZ::insert_test(P, batch_percent, 1);
-// 		// CPAMZ::delete_test(P, batch_percent, 1);
-// 		// CPAMZ::insert_test(P, insert_pts, 1);
-// 		// CPAMZ::delete_test(P, delete_pts, 1);
-// 		// // CPAMZ::range_report_test(P, range_count_querys, 1);
+// // 		// CPAMZ::build_test(P, 1);
+// // 		// CPAMZ::insert_test(P, batch_percent, 1);
+// // 		// CPAMZ::delete_test(P, batch_percent, 1);
+// // 		// CPAMZ::insert_test(P, insert_pts, 1);
+// // 		// CPAMZ::delete_test(P, delete_pts, 1);
+// // 		// // CPAMZ::range_report_test(P, range_count_querys, 1);
 // 		// cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
 // 		ZDTest::build_test(P);
 // 		// ZDTest::batch_insert_test(P, batch_percent);
@@ -167,21 +165,21 @@ void run(int argc, char** argv){
 
 	/* build test */
 	if (task == "build"){
-		if (algo == "mvzd"){
+		if (algo == "mvq"){
 			ZDTest::build_test(P);
 		}
-		else if (algo == "cpambb"){
-			CPAMBB::build_test(P);
+		else if (algo == "pacz"){
+			PACZ::build_test(P);
 		}
 		else if (algo == "cpamz"){
-			CPAMZ::build_test(P);
+// 			CPAMZ::build_test(P);
 		}
 		else if (algo == "combined"){
 			ZDTest::build_test(P);
 			line_splitter();
-			CPAMZ::build_test(P);
+// 			CPAMZ::build_test(P);
 			line_splitter();
-			CPAMBB::build_test(P);
+			PACZ::build_test(P);
 		}
 		return;
 	}
@@ -208,8 +206,8 @@ void run(int argc, char** argv){
 		if (algo == "combined"){
 			// cout << "start batch insert" << endl;
 			ZDTest::batch_insert_test(P, batch_sizes);
-			CPAMZ::batch_insert_test(P, batch_sizes);
-			CPAMBB::batch_insert_test(P, batch_sizes);
+// 			CPAMZ::batch_insert_test(P, batch_sizes);
+			PACZ::batch_insert_test(P, batch_sizes);
 		}
 	}
 
@@ -244,8 +242,8 @@ void run(int argc, char** argv){
 
 		if (algo == "combined"){
 			ZDTest::batch_delete_test(P, batch_sizes);
-			CPAMZ::batch_delete_test(P, batch_sizes);
-			CPAMBB::batch_delete_test(P, batch_sizes);
+// 			CPAMZ::batch_delete_test(P, batch_sizes);
+			PACZ::batch_delete_test(P, batch_sizes);
 		}
 	}
 
@@ -271,11 +269,11 @@ void run(int argc, char** argv){
 			cout << "[zdtree]: " << endl;
 			ZDTest::range_count_test(P, range_count_querys, cnt);
 			line_splitter();
-			cout << "[cpambb]: " << endl;
-			CPAMBB::range_count_test(P, range_count_querys, cnt);
+			cout << "[pacz]: " << endl;
+			PACZ::range_count_test(P, range_count_querys, cnt);
 			line_splitter();
 			cout << "[cpamz]: " << endl;
-			CPAMZ::range_count_test(P, range_count_querys, cnt);
+// 			CPAMZ::range_count_test(P, range_count_querys, cnt);
 		}
 		return;
 	}
@@ -303,8 +301,8 @@ void run(int argc, char** argv){
 			cout << "[zdtree]: " << endl;
 			ZDTest::range_report_test(P, range_report_querys, cnt);
 			line_splitter();
-			cout << "[cpambb]: " << endl;
-			CPAMBB::range_report_test(P, range_report_querys, cnt);
+			cout << "[pacz]: " << endl;
+			PACZ::range_report_test(P, range_report_querys, cnt);
 
 			/* Exp for granularity size*/
 			// parlay::sequence<size_t> granularity_sizes = {
@@ -312,22 +310,22 @@ void run(int argc, char** argv){
 			// };
 			// for (auto &val: granularity_sizes){
 			// 	cout << "[INFO] Using granularity " << val << endl;
-			// 	CPAMBB::range_report_test(P, range_report_querys, cnt, val);
+			// 	PACZ::range_report_test(P, range_report_querys, cnt, val);
 			// }
 
 			line_splitter();
 			cout << "[cpamz]: " << endl;
-			CPAMZ::range_report_test(P, range_report_querys, cnt);
+// 			CPAMZ::range_report_test(P, range_report_querys, cnt);
 		}
 		return;
 	}
 
 	if (task == "knn"){
-		if (algo == "mvzd"){
+		if (algo == "mvq"){
 			ZDTest::knn_test(P);
 		}
-		else if (algo == "cpambb"){
-			CPAMBB::knn_test(P);
+		else if (algo == "pacz"){
+			PACZ::knn_test(P);
 		}
 		else if (algo == "combined"){
 			parlay::sequence<size_t> k_vals = {
@@ -342,7 +340,7 @@ void run(int argc, char** argv){
 			for (size_t k: k_vals){
 				cout << "[INFO] k = " << k << endl;
 				ZDTest::knn_test(P, k, 50000);
-				CPAMBB::knn_test(P, k, 50000);
+				PACZ::knn_test(P, k, 50000);
 			}
 		}
 		else{
@@ -356,26 +354,26 @@ void run(int argc, char** argv){
 			cout << "[ERROR]: <Dir-to-Multi-Version> is not specified." << endl;
 		}
 		else{
-			if (algo == "mvzd"){
+			if (algo == "mvq"){
 				string mv_dir = cmd.getOptionValue("-mv");
 				ZDTest::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
 				// ZDTest::multi_version_test(P, mv_dir, 14, 11);	// Japan
 			}
-			else if (algo == "cpambb"){
+			else if (algo == "pacz"){
 				string mv_dir = cmd.getOptionValue("-mv");
-				// CPAMBB::multi_version_test(P, mv_dir, 14, 11);	// Japan
-				CPAMBB::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
+				// PACZ::multi_version_test(P, mv_dir, 14, 11);	// Japan
+				PACZ::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
 			}
 			else if (algo == "cpamz"){
 				string mv_dir = cmd.getOptionValue("-mv");
-				// CPAMBB::multi_version_test(P, mv_dir, 14, 11);	// Japan
-				CPAMZ::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
+				// PACZ::multi_version_test(P, mv_dir, 14, 11);	// Japan
+// 				CPAMZ::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
 
 			}
 			else if (algo == "combined"){
 				string mv_dir = cmd.getOptionValue("-mv");
 				ZDTest::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
-				CPAMBB::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
+				PACZ::multi_version_test(P, mv_dir, 18, 7);	// Bhutan
 			}
 			else{
 				cout << "unsupported" << endl;
@@ -390,10 +388,10 @@ void run(int argc, char** argv){
 			cout << "[ERROR]: <Dir-to-Multi-Version> is not specified." << endl;
 		}
 		else{
-			if (algo == "mvzd"){
+			if (algo == "mvq"){
 				string query_dir = cmd.getOptionValue("-mv");	// for multi-version-query, the -mv path is the query input
 				ZDTest::multi_version_query_test(P, query_dir);
-				// CPAMBB::multi_version_query_test(P, query_dir);
+				// PACZ::multi_version_query_test(P, query_dir);
 			}
 			else{
 				cout << "unsupported" << endl;
@@ -403,19 +401,19 @@ void run(int argc, char** argv){
 
 	/* diff test */
 	if (task == "diff"){
-		if (algo == "mvzd"){
+		if (algo == "mvq"){
 			ZDTest::diff_test(P);
 		}
-		else if (algo == "cpambb"){	//	CPAM-BB
-			CPAMBB::diff_test(P);
+		else if (algo == "pacz"){	//	CPAM-BB
+			PACZ::diff_test(P);
 		}
 		else if (algo == "cpamz"){	//	CPAMZ
-			CPAMZ::diff_test(P);
+// 			CPAMZ::diff_test(P);
 		}
 		else if (algo == "combined"){
 			ZDTest::diff_test(P);
-			CPAMBB::diff_test(P);
-			CPAMZ::diff_test(P);
+			PACZ::diff_test(P);
+// 			CPAMZ::diff_test(P);
 		}
 	}
 
@@ -451,8 +449,8 @@ void run(int argc, char** argv){
 		// cout << "[ZDtree]" << endl;
 		ZDTest::spatial_diff_test_latency(P, queries, batch_sizes, ratio);
 		// cout << "[CPAM-BB]" << endl;
-		// // CPAMZ::spatial_diff_test_latency(P, queries, batch_sizes, ratio);
-		// CPAMBB::spatial_diff_test_latency(P, queries, batch_sizes, ratio);
+// 		// // CPAMZ::spatial_diff_test_latency(P, queries, batch_sizes, ratio);
+		// PACZ::spatial_diff_test_latency(P, queries, batch_sizes, ratio);
 		
 		// line_splitter();
 
@@ -460,24 +458,24 @@ void run(int argc, char** argv){
 		// ZDTest::plain_spatial_diff_test_latency(P, queries, batch_sizes, ratio);
 		// cout << "[ZDtree-Plain-Dual]" << endl;
 		// ZDTest::plain_spatial_diff_test_latency(P, queries, batch_sizes, ratio, true);
-		// // CPAMZ::plain_spatial_diff_test_latency(P, queries, batch_sizes, ratio);
+// 		// // CPAMZ::plain_spatial_diff_test_latency(P, queries, batch_sizes, ratio);
 		cout << "[CPAM-BB-Plain]" << endl;
-		CPAMBB::plain_spatial_diff_test_latency(P, queries, batch_sizes, ratio);
+		PACZ::plain_spatial_diff_test_latency(P, queries, batch_sizes, ratio);
 
         // for (auto &batch_size: batch_sizes){
         //     if (batch_size > P.size()) break;
         //     cout << "[INFO] Dealing with Batch Size: " << batch_size << endl;
 		// 	cout << "[INFO] Proposed Solutions:" << endl;
 		// 	ZDTest::spatial_diff_test_latency(P, queries, batch_size, ratio);
-        // 	CPAMZ::spatial_diff_test_latency(P, queries, batch_size, ratio);
-			// CPAMBB::spatial_diff_test_latency(P, queries, batch_size, ratio);
+//         // 	CPAMZ::spatial_diff_test_latency(P, queries, batch_size, ratio);
+			// PACZ::spatial_diff_test_latency(P, queries, batch_size, ratio);
 			
 		// 	cout << "[INFO] Plain Solutions:" << endl;
 
 		// 	ZDTest::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
 		// 	ZDTest::plain_spatial_diff_test_latency(P, queries, batch_size, ratio, true);
-		// 	CPAMZ::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
-		// 	CPAMBB::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
+// 		// 	CPAMZ::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
+		// 	PACZ::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
         // }
 
 		// line_splitter();
@@ -487,15 +485,15 @@ void run(int argc, char** argv){
         // for (auto &ratio: ratios){
         //     cout << "[INFO] Dealing with Ratio: " << ratio << endl;
 		// 	ZDTest::spatial_diff_test_latency(P, queries, batch_size, ratio);
-        // 	CPAMZ::spatial_diff_test_latency(P, queries, batch_size, ratio);
-		// 	CPAMBB::spatial_diff_test_latency(P, queries, batch_size, ratio);
+//         // 	CPAMZ::spatial_diff_test_latency(P, queries, batch_size, ratio);
+		// 	PACZ::spatial_diff_test_latency(P, queries, batch_size, ratio);
 
 		// 	cout << "[INFO] Plain Solutions:" << endl;
 
 		// 	ZDTest::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
 		// 	ZDTest::plain_spatial_diff_test_latency(P, queries, batch_size, ratio, true);
-		// 	CPAMZ::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
-		// 	CPAMBB::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
+// 		// 	CPAMZ::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
+		// 	PACZ::plain_spatial_diff_test_latency(P, queries, batch_size, ratio);
         // }
 
 	}
@@ -537,13 +535,13 @@ void run(int argc, char** argv){
 		ZDTest::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
 		// ZDTest::spatial_diff_test_fix_ratio(P, range_report_querys, batch_sizes);
 		line_splitter();
-		cout << "[cpambb fix ratio]: " << endl;
-		CPAMBB::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
-		// CPAMBB::spatial_diff_test_fix_ratio(P, range_report_querys, batch_sizes);
+		cout << "[pacz fix ratio]: " << endl;
+		PACZ::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
+		// PACZ::spatial_diff_test_fix_ratio(P, range_report_querys, batch_sizes);
 		line_splitter();
 		cout << "[cpamz fix ratio]: " << endl;
-		CPAMZ::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
-		// CPAMZ::spatial_diff_test_fix_ratio(P, range_report_querys, batch_sizes);
+// 		CPAMZ::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
+// 		// CPAMZ::spatial_diff_test_fix_ratio(P, range_report_querys, batch_sizes);
 		cout << endl;
 
 		// parlay::sequence<size_t> ratios = {1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -553,12 +551,12 @@ void run(int argc, char** argv){
 		// // ZDTest::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
 		// ZDTest::spatial_diff_test_fix_size(P, range_report_querys, ratios);
 		// line_splitter();
-		// cout << "[cpambb fix ratio]: " << endl;
-		// // CPAMBB::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
-		// CPAMBB::spatial_diff_test_fix_size(P, range_report_querys, ratios);
+		// cout << "[pacz fix ratio]: " << endl;
+		// // PACZ::spatial_diff_test(P, range_report_querys, batch_sizes, early_end);
+		// PACZ::spatial_diff_test_fix_size(P, range_report_querys, ratios);
 		// line_splitter();
 		// cout << "[cpamz fix ratio]: " << endl;
-		// CPAMZ::spatial_diff_test_fix_size(P, range_report_querys, ratios);
+// 		// CPAMZ::spatial_diff_test_fix_size(P, range_report_querys, ratios);
 	}
 
 	if (task == "spatial-join"){

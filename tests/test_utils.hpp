@@ -14,11 +14,10 @@
 #include <parlay/internal/get_time.h>
 #include <parlay/hash_table.h>
 #include <silva/index/mvq.hpp>
-#include <silva/index/cpamz.hpp>
 #include <helper/time_loop.h>
 
 #include <silva/core/hilbert.h>
-#include <silva/index/cpambb.hpp>
+#include <silva/index/pacz.hpp>
 
 #define TEST	//	print for correctness check
 

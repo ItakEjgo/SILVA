@@ -1106,18 +1106,18 @@ namespace ZDTest{
 
     template<class PT, class RQ>
     void CPAMZ_test(PT &P, RQ querys){
-	    auto CPAMZ = CPAMZ::CPAMZ_init(P);
+// 	    auto CPAMZ = CPAMZ::CPAMZ_init(P);
     #ifdef DEBUG
 	    cout << "CPAMZ size = " << CPAMZ.size() << endl;
     #endif
 	    parlay::internal::timer t;
 	    parlay::sequence<Point> range_query_res;
 	    for (auto query_mbr: querys){
-		    range_query_res = CPAMZ::range_report(CPAMZ, query_mbr);
+// 		    range_query_res = CPAMZ::range_report(CPAMZ, query_mbr);
 	    }
 	    cout << "Z-CPAM query time (avg): " << t.next_time() << endl;
     #ifdef DEBUG
-	    // auto range_query_res = CPAMZ::range_report(CPAMZ[0], query_mbr);
+// 	    // auto range_query_res = CPAMZ::range_report(CPAMZ[0], query_mbr);
 	    cout << "[Z-CPAM RESULT] range query results: " << range_query_res.size() << "| ";
 	    for (auto p: range_query_res){
 		    cout << "(" << p.x << ", " << p.y << ")" << " ";
@@ -1128,17 +1128,17 @@ namespace ZDTest{
 
     template<class PT, class RQ>
     void zMAP_test(PT &P, RQ querys){
-	    auto zMAP = CPAMZ::zMAP_init(P);
+// 	    auto zMAP = CPAMZ::zMAP_init(P);
     #ifdef DEBUG
 	    cout << "zMAP size = " << zMAP.size() << endl;
     #endif
 	    parlay::internal::timer t;
 	    parlay::sequence<Point> range_query_res;
 	    for (auto query_mbr: querys){
-		    range_query_res = CPAMZ::zMAP_range_report(zMAP, query_mbr);
+// 		    range_query_res = CPAMZ::zMAP_range_report(zMAP, query_mbr);
 	    }
 	    cout << "zMAP query time (avg): " << t.next_time() << endl;
-	    // auto range_query_res = CPAMZ::range_report(CPAMZ[0], query_mbr);
+// 	    // auto range_query_res = CPAMZ::range_report(CPAMZ[0], query_mbr);
     #ifdef DEBUG
 	    cout << "[Z-Map RESULT] range query results: " << range_query_res.size() << "| ";
 	    for (auto p: range_query_res){
