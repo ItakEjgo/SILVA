@@ -7,6 +7,7 @@
 #include <silva/core/global_config.hpp>
 
 // Include the test suites
+#include "../tests/test_rlog.hpp"
 #include "../tests/test_mvq.hpp"
 #include "../tests/test_pacz.hpp"
 
@@ -56,32 +57,42 @@ void run(int argc, char** argv) {
         if (algo == "mvq" || algo == "combined") ZDTest::build_test(P);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::build_test(P);
+        if (algo == "combined") line_splitter();
+        if (algo == "rlog" || algo == "combined") RlogTest::build_test(P);
     } 
     else if (task == "batch-insert") {
         if (algo == "mvq" || algo == "combined") ZDTest::batch_insert_test(P, batch_sizes);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P, batch_sizes);
+        if (algo == "combined") line_splitter();
+        if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P, batch_sizes);
     }
     else if (task == "batch-delete") {
         if (algo == "mvq" || algo == "combined") ZDTest::batch_delete_test(P, batch_sizes);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P, batch_sizes);
+        if (algo == "combined") line_splitter();
+        if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P, batch_sizes);
     }
     else if (task == "range-count") {
         string count_qry_file = cmd.getOptionValue("-r", "range_count.qry");
-        auto querys = std::get<1>(geobase::read_range_query(count_qry_file, 4, mvq::Config::get().maxSize));
-        parlay::sequence<size_t> cnt;
+        auto q_tuple = geobase::read_range_query(count_qry_file, 4, mvq::Config::get().maxSize);
+        auto querys = std::get<1>(q_tuple);
+        auto cnt = std::get<0>(q_tuple);
         if (algo == "mvq" || algo == "combined") ZDTest::range_count_test(P, querys, cnt);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::range_count_test(P, querys, cnt);
     }
     else if (task == "range-report") {
         string report_qry_file = cmd.getOptionValue("-r", "range_report.qry");
-        auto querys = std::get<1>(geobase::read_range_query(report_qry_file, 8, mvq::Config::get().maxSize));
-        parlay::sequence<size_t> cnt;
+        auto q_tuple = geobase::read_range_query(report_qry_file, 8, mvq::Config::get().maxSize);
+        auto querys = std::get<1>(q_tuple);
+        auto cnt = std::get<0>(q_tuple);
         if (algo == "mvq" || algo == "combined") ZDTest::range_report_test(P, querys, cnt);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::range_report_test(P, querys, cnt);
+        if (algo == "combined") line_splitter();
+        if (algo == "rlog" || algo == "combined") RlogTest::range_report_test(P, querys, cnt);
     }
     else if (task == "knn") {
         size_t k = cmd.getOptionIntValue("-k", 10);
