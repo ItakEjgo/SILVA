@@ -10,6 +10,7 @@
 #include "../tests/test_rlog.hpp"
 #include "../tests/test_pkd.hpp"
 #include "../tests/test_boost.hpp"
+#include "../tests/test_knn_correctness.hpp"
 #include "../tests/test_mvq.hpp"
 #include "../tests/test_pacz.hpp"
 
@@ -118,6 +119,9 @@ void run(int argc, char** argv) {
         if (algo == "mvq" || algo == "combined") ZDTest::knn_test(P, k, q_num);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::knn_test(P, k, q_num);
+    }
+    else if (task == "knn-verify") {
+        KNNVerify::run_verification(P);
     }
     else {
         cout << "[ERROR]: Unknown task: " << task << endl;

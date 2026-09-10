@@ -15,7 +15,7 @@ struct PACZRunner {
     
     void build_base(const std::vector<Value>& P_base) {
         std::vector<geobase::Point> pts(P_base.size());
-        for(size_t i=0; i<P_base.size(); i++) pts[i] = geobase::Point(P_base[i].first.get<0>(), P_base[i].first.get<1>(), P_base[i].second);
+        for(size_t i=0; i<P_base.size(); i++) pts[i] = geobase::Point(P_base[i].second, P_base[i].first.get<0>(), P_base[i].first.get<1>());
         
         // Dummy run
         std::vector<geobase::Point> sub_pts(pts.begin(), pts.begin() + std::min((size_t)10000, pts.size()));
