@@ -24,7 +24,10 @@ struct MVQRunner {
         // MVQ takes vector<Point> directly from P_base_set
         std::vector<geobase::Point> pts(P_base.size());
         for(size_t i=0; i<P_base.size(); i++) pts[i] = geobase::Point(P_base[i].first.get<0>(), P_base[i].first.get<1>(), P_base[i].second);
-        tree->build(pts);
+        parlay::sequence<geobase::Point> seq_pts(pts.begin(), pts.end());
+        auto sorted_pts = geobase::get_sorted_points(seq_pts);
+        std::vector<geobase::Point> sorted_vec(sorted_pts.begin(), sorted_pts.end());
+        tree->build(sorted_vec);
         master = tree->root;
         history.push_back(master);
     }
