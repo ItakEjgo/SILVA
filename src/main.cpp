@@ -9,6 +9,7 @@
 // Include the test suites
 #include "../tests/test_rlog.hpp"
 #include "../tests/test_pkd.hpp"
+#include "../tests/test_boost.hpp"
 #include "../tests/test_mvq.hpp"
 #include "../tests/test_pacz.hpp"
 
@@ -62,6 +63,8 @@ void run(int argc, char** argv) {
         if (algo == "rlog" || algo == "combined") RlogTest::build_test(P);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::build_test(P);
+        if (algo == "combined") line_splitter();
+        if (algo == "boost" || algo == "combined") BoostTest::build_test(P);
     } 
     else if (task == "batch-insert") {
         if (algo == "mvq" || algo == "combined") ZDTest::batch_insert_test(P, batch_sizes);
@@ -71,6 +74,8 @@ void run(int argc, char** argv) {
         if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P, batch_sizes);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::batch_insert_test(P, batch_sizes);
+        if (algo == "combined") line_splitter();
+        if (algo == "boost" || algo == "combined") BoostTest::batch_insert_test(P, batch_sizes);
     }
     else if (task == "batch-delete") {
         if (algo == "mvq" || algo == "combined") ZDTest::batch_delete_test(P, batch_sizes);
@@ -80,6 +85,8 @@ void run(int argc, char** argv) {
         if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P, batch_sizes);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::batch_delete_test(P, batch_sizes);
+        if (algo == "combined") line_splitter();
+        if (algo == "boost" || algo == "combined") BoostTest::batch_delete_test(P, batch_sizes);
     }
     else if (task == "range-count") {
         string count_qry_file = cmd.getOptionValue("-r", "range_count.qry");
@@ -102,6 +109,8 @@ void run(int argc, char** argv) {
         if (algo == "rlog" || algo == "combined") RlogTest::range_report_test(P, querys, cnt);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::range_report_test(P, querys, cnt);
+        if (algo == "combined") line_splitter();
+        if (algo == "boost" || algo == "combined") BoostTest::range_report_test(P, querys, cnt);
     }
     else if (task == "knn") {
         size_t k = cmd.getOptionIntValue("-k", 10);
