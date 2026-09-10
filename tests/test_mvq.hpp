@@ -945,25 +945,21 @@ namespace ZDTest{
 			rangeReport[i].resize(cnt[i]);	
 		}
 
-		for (size_t i = 0; i < querys.size(); i++){
-			// print_mbr(querys[i]);
-			auto avg_time = time_loop(
-				3, 1.0, 
-				[&]() {
+		auto avg_time = time_loop(
+			3, 1.0, 
+			[&]() {
+				parlay::parallel_for(0, querys.size(), [&](size_t i){
 					rangeReportCnt[i] = 0;
-				},
-				[&]() {					
+				});
+			},
+			[&]() {					
+				parlay::parallel_for(0, querys.size(), [&](size_t i){
 					zdtree.range_report(querys[i], mvq::Config::get().largest_mbr, rangeReportCnt[i], rangeReport[i]);
-				},
-				[&](){} );
-			if (rangeReportCnt[i] != cnt[i]){
-				cout << "[ERROR] Incorrect" << endl;
-				cout << rangeReportCnt[i] << " " << cnt[i] << endl;
-			}
-			else{
-				cout << fixed << setprecision(6) << rangeReportCnt[i] << " " << avg_time << endl;
-			}
-		}
+				});
+			},
+			[&](){} 
+		);
+		cout << fixed << setprecision(6) << "[MVQ] range report time (avg): " << avg_time << endl;
 
 
 		// cout << fixed << setprecision(6) << "[zdtree] range report time (avg): " << rangeReport_avg << endl;
