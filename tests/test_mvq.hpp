@@ -960,6 +960,14 @@ namespace ZDTest{
 			[&](){} 
 		);
 		cout << fixed << setprecision(6) << "[MVQ] range report time (avg): " << avg_time << endl;
+		bool is_correct = true;
+		for (size_t i = 0; i < querys.size(); i++) {
+			if (rangeReportCnt[i] != cnt[i]) {
+				cout << "[MVQ ERROR] Query " << i << " failed. Expected: " << cnt[i] << ", Got: " << rangeReportCnt[i] << endl;
+				is_correct = false; break;
+			}
+		}
+		if (is_correct) cout << "[MVQ] Accuracy: 100% (All " << querys.size() << " queries correct)" << endl;
 
 
 		// cout << fixed << setprecision(6) << "[zdtree] range report time (avg): " << rangeReport_avg << endl;

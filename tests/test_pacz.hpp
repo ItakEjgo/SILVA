@@ -578,6 +578,14 @@ namespace PACZ{
 		if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 		else cout << "[PACZ]: ";
 		cout << fixed << setprecision(6) << "range report time (avg): " << avg_time << endl;
+		bool is_correct = true;
+		for (size_t i = 0; i < querys.size(); i++) {
+			if (rangeCnt[i] != cnt[i]) {
+				cout << "[PACZ ERROR] Query " << i << " failed. Expected: " << cnt[i] << ", Got: " << rangeCnt[i] << endl;
+				is_correct = false; break;
+			}
+		}
+		if (is_correct) cout << "[PACZ] Accuracy: 100% (All " << querys.size() << " queries correct)" << endl;
 
 
 		/* range report sample test. */
