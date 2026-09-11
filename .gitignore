@@ -1,2 +1,6 @@
 build/
 dataset
+__pycache__/
+.tmp_experiments/
+AGENTS.md
+.omp/
