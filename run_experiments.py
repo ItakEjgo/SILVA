@@ -7,6 +7,7 @@ from datetime import datetime
 
 class SilvaExperimentRunner:
     def __init__(self, threads=None):
+        self.threads = threads
         self.base_dir = "."
         self.binary_path = "build/main"
         self.datasets_dir = "dataset"
