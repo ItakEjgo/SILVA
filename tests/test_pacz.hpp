@@ -638,15 +638,15 @@ namespace PACZ{
 	
 
 	template<typename PT>
-	void batch_insert_test(PT P, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto n = P.size();
-		auto m1 = PACZ::map_init(P, use_hilbert);	//	build original tree
+	void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
+		auto n = P_base.size();
+		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
 		decltype(m1) m2;
 
-		auto rand_p = shuffle_point(P);
+		auto rand_p = shuffle_point(P_update);
 
 		for (auto &num_processed: batch_sizes){
-			if (num_processed > P.size()) num_processed = P.size();
+			if (num_processed > P_update.size()) num_processed = P_update.size();
 			auto P2 = rand_p.substr(0, num_processed);
 
 	    	parlay::parallel_for (0, P2.size(), [&](int i){
@@ -676,13 +676,13 @@ namespace PACZ{
 	}
 
 	template<typename PT>
-	void batch_delete_test(PT P, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto m1 = PACZ::map_init(P, use_hilbert);	//	build original tree
+	void batch_delete_test(PT P_base, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
+		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
 		decltype(m1) m2;
-		auto rand_p = shuffle_point(P);
+		auto rand_p = shuffle_point(P_base);
 
 		for (auto &num_processed: batch_sizes){
-			if (num_processed > P.size()) num_processed = P.size();
+			if (num_processed > P_base.size()) num_processed = P_base.size();
 			auto P2 = rand_p.substr(0, num_processed);
 			bool print_flag = true;
 

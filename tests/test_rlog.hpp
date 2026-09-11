@@ -26,14 +26,16 @@ namespace RlogTest {
         std::cout << "[RlogTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
 
-    void batch_insert_test(PT P, parlay::sequence<size_t>& batch_sizes) {
-        auto P_conv = convert_points(P);
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t>& batch_sizes) {
+        auto P_conv = convert_points(P_base);
+        auto P_update_conv = convert_points(P_update);
         for (size_t b_size : batch_sizes) {
-            size_t actual_b = std::min(b_size, P_conv.size());
-            std::vector<Value> batch(P_conv.begin(), P_conv.begin() + actual_b);
+            size_t actual_b = std::min(b_size, P_update_conv.size());
+            std::vector<Value> batch(P_update_conv.begin(), P_update_conv.begin() + actual_b);
             double ms = 0;
             for (int i = 0; i < 3; i++) {
                 RlogTree tree(1);
+                tree.build_base(P_conv);
                 parlay::internal::timer t;
                 tree.commit_inserts(batch);
                 ms += t.stop() * 1000.0;
@@ -43,10 +45,10 @@ namespace RlogTest {
         }
     }
 
-    void batch_delete_test(PT P, parlay::sequence<size_t>& batch_sizes) {
-        auto P_conv = convert_points(P);
+    void batch_delete_test(PT P_base, parlay::sequence<size_t>& batch_sizes) {
+        auto P_conv = convert_points(P_base);
         for (size_t b_size : batch_sizes) {
-            size_t actual_b = std::min(b_size, P_conv.size());
+            size_t actual_b = std::min(b_size, P_base.size());
             std::vector<Value> batch(P_conv.begin(), P_conv.begin() + actual_b);
             double ms = 0;
             for (int i = 0; i < 3; i++) {

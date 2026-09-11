@@ -26,17 +26,18 @@ namespace PKDLogTest {
         std::cout << "[PkdLogTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
 
-    void batch_insert_test(PT P, parlay::sequence<size_t>& batch_sizes) {
-        auto P_conv = convert_points(P);
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t>& batch_sizes) {
+        auto P_conv = convert_points(P_base);
         for (size_t b_size : batch_sizes) {
-            size_t actual_b = std::min(b_size, P_conv.size());
+            size_t actual_b = std::min(b_size, P_update.size());
             parlay::sequence<geobase::Point> adds(actual_b);
-            for(size_t i=0; i<actual_b; i++) adds[i] = P[i];
+            for(size_t i=0; i<actual_b; i++) adds[i] = P_update[i];
             parlay::sequence<geobase::Point> rems;
 
             double ms = 0;
             for (int i = 0; i < 3; i++) {
                 PKDLogRunner runner;
+                runner.build_base(P_conv);
                 parlay::internal::timer t;
                 runner.commit(adds, rems);
                 ms += t.stop() * 1000.0;
@@ -46,13 +47,13 @@ namespace PKDLogTest {
         }
     }
 
-    void batch_delete_test(PT P, parlay::sequence<size_t>& batch_sizes) {
-        auto P_conv = convert_points(P);
+    void batch_delete_test(PT P_base, parlay::sequence<size_t>& batch_sizes) {
+        auto P_conv = convert_points(P_base);
         for (size_t b_size : batch_sizes) {
-            size_t actual_b = std::min(b_size, P_conv.size());
+            size_t actual_b = std::min(b_size, P_base.size());
             parlay::sequence<geobase::Point> adds;
             parlay::sequence<geobase::Point> rems(actual_b);
-            for(size_t i=0; i<actual_b; i++) rems[i] = P[i];
+            for(size_t i=0; i<actual_b; i++) rems[i] = P_base[i];
 
             double ms = 0;
             for (int i = 0; i < 3; i++) {

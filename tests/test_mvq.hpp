@@ -739,20 +739,20 @@ namespace ZDTest{
 
 
     template<typename PT>
-    void batch_insert_test(PT P, parlay::sequence<size_t> &batch_sizes){
-	    auto n = P.size();
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t> &batch_sizes){
+	    auto n = P_base.size();
 
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
-	    auto P_set = get_sorted_points(P); // build original tree
+	    auto P_set = get_sorted_points(P_base); // build original tree
 
 	    zdtree.build(P_set);
 
-		auto rand_p = shuffle_point(P);
+		auto rand_p = shuffle_point(P_update);
 
 		shared_ptr<mvq::BaseNode> new_ver = nullptr;
 		
 		for (auto &num_processed: batch_sizes){
-			if (num_processed > P.size()) num_processed = P.size();
+			if (num_processed > P_update.size()) num_processed = P_update.size();
 	    	auto P2 = rand_p.substr(0, num_processed);	// first x%
 	    	parlay::parallel_for (0, P2.size(), [&](int i){
 		    	P2[i].id = n + i;
@@ -783,20 +783,19 @@ namespace ZDTest{
     }
 
     template<typename PT>
-    void batch_delete_test(PT P, parlay::sequence<size_t> &batch_sizes){
+    void batch_delete_test(PT P_base, parlay::sequence<size_t> &batch_sizes){
+	    auto n = P_base.size();
+
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
-	    auto P_set = get_sorted_points(P); // build original tree
+	    auto P_set = get_sorted_points(P_base); // build original tree
 	    zdtree.build(P_set);
-	    shared_ptr<mvq::BaseNode> new_ver = nullptr;
 
-		auto rand_p = shuffle_point(P);
-		// auto rand_p = P;
+		auto rand_p = shuffle_point(P_base);
 		
-
 		for (auto &num_processed: batch_sizes){
-			if (num_processed > P.size()) num_processed = P.size();
+			if (num_processed > P_base.size()) num_processed = P_base.size();
 	    	auto P2 = rand_p.substr(0, num_processed);	// first x%
-			// bool print_flag = true;
+			shared_ptr<mvq::BaseNode> new_ver = nullptr;
 	    	auto zdtree_delete_avg = time_loop(
 		    	3, 1.0, [&]() {
 					new_ver.reset();
