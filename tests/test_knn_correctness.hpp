@@ -7,6 +7,7 @@
 #include "../benchmarks/runners/boost_runner.hpp"
 #include "../benchmarks/runners/rlog_runner.hpp"
 #include "../benchmarks/runners/pkd_runner.hpp"
+#include "../benchmarks/runners/pkd_log_runner.hpp"
 
 namespace KNNVerify {
     using PT = parlay::sequence<geobase::Point>;
@@ -23,6 +24,7 @@ namespace KNNVerify {
         BoostRunner boost_r; boost_r.build_base(P_conv);
         RlogRunner rlog_r(1); rlog_r.build_base(P_conv);
         PKDRunner pkd_r; pkd_r.build_base(P_conv);
+        PKDLogRunner pkd_log_r; pkd_log_r.build_base(P_conv);
 
         // Generate 100 random queries
         srand(42);
@@ -35,7 +37,7 @@ namespace KNNVerify {
         
         for (int K : Ks) {
             std::cout << "\n=== Running " << K << "NN Correctness Check (100 Queries) ===" << std::endl;
-            size_t mvq_hash = 0, pacz_hash = 0, boost_hash = 0, rlog_hash = 0, pkd_hash = 0;
+            size_t mvq_hash = 0, pacz_hash = 0, boost_hash = 0, rlog_hash = 0, pkd_hash = 0, pkd_log_hash = 0;
             
             for (auto& q : queries) {
                 size_t cnt = 0, h = 0;
@@ -54,6 +56,9 @@ namespace KNNVerify {
                 
                 h = 0; pkd_r.knn_query(q, K, cnt, h);
                 pkd_hash += h;
+                
+                h = 0; pkd_log_r.knn_query(q, K, cnt, h);
+                pkd_log_hash += h;
             }
             
             std::cout << std::left << std::setw(15) << "Algorithm" << "Checksum (Sum of IDs)" << std::endl;
@@ -63,9 +68,10 @@ namespace KNNVerify {
             std::cout << std::left << std::setw(15) << "BoostRTree" << boost_hash << std::endl;
             std::cout << std::left << std::setw(15) << "RlogTree" << rlog_hash << std::endl;
             std::cout << std::left << std::setw(15) << "PkdTree" << pkd_hash << std::endl;
+            std::cout << std::left << std::setw(15) << "PkdLogTree" << pkd_log_hash << std::endl;
             
-            if (mvq_hash == pacz_hash && pacz_hash == boost_hash && boost_hash == rlog_hash && rlog_hash == pkd_hash) {
-                std::cout << ">> RESULT: [PASS] All 5 algorithms returned identical results!" << std::endl;
+            if (mvq_hash == pacz_hash && pacz_hash == boost_hash && boost_hash == rlog_hash && rlog_hash == pkd_hash && pkd_hash == pkd_log_hash) {
+                std::cout << ">> RESULT: [PASS] All 6 algorithms returned identical results!" << std::endl;
             } else {
                 std::cout << ">> RESULT: [FAIL] Checksums mismatch! Correctness bug detected." << std::endl;
             }
