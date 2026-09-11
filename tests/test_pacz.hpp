@@ -667,6 +667,8 @@ namespace PACZ{
 	    	[&](){
 				if (print_flag){
 					cout << "# of points: " << versions.back().size() << endl;
+					double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+					cout << "[memory_MB]: " << mem_mb << endl;
 					print_flag = false;
 				}			
 			});
@@ -704,6 +706,8 @@ namespace PACZ{
 	    	[&](){
 				if (print_flag){
 					cout << "# of points: " << versions.back().size() << endl;
+					double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+					cout << "[memory_MB]: " << mem_mb << endl;
 					print_flag = false;
 				}
 			} );

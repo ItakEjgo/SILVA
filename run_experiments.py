@@ -59,10 +59,11 @@ class SilvaExperimentRunner:
             return []
         
         results = []
-        pattern = r'\[batch_(?:size|ratio)\]:\s*([\d\.]+)\n.*?(?:time \(avg\)):\s*([\d\.]+)'
+        pattern = r'(?:\[memory_MB\]:\s*([\d\.]+)\n)?.*?\[batch_(?:size|ratio)\]:\s*([\d\.]+)\n.*?(?:time \(avg\)):\s*([\d\.]+)'
         matches = re.findall(pattern, output)
-        for batch_size, time_s in matches:
-            results.append((batch_size, time_s))
+        for mem, batch_size, time_s in matches:
+            mem_val = mem if mem else "N/A"
+            results.append((batch_size, time_s, mem_val))
         return results
 
     def run_build_experiment(self):
@@ -106,7 +107,7 @@ class SilvaExperimentRunner:
         
         with open(csv_path, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Distribution", "Size", "Algorithm", "Threads", "Batch_Size", f"{task_name.capitalize()}_Time_Seconds"])
+            writer.writerow(["Distribution", "Size", "Algorithm", "Threads", "Batch_Size", f"{task_name.capitalize()}_Time_Seconds", "Memory_MB"])
             
             for dist in self.distributions:
                 for size in self.sizes:
@@ -124,17 +125,13 @@ class SilvaExperimentRunner:
                         
                         threads_str = str(self.threads) if self.threads else "ALL"
                         
-                        if output in ["TIMEOUT", "CRASH", None]:
-                            writer.writerow([dist, size, algo, threads_str, "N/A", output])
-                            print(f"  -> Result: {output}")
-                            continue
-                            
                         res_list = self.parse_batch_time(output, action_keyword)
                         if not res_list:
-                            writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR"])
-                            print("  -> Result: PARSE_ERROR")
-                        for b_size, t in res_list:
-                            writer.writerow([dist, size, algo, threads_str, b_size, t])
+                            writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR", "N/A"])
+                        else:
+                            for batch_size, time_s, mem_val in res_list:
+                                writer.writerow([dist, size, algo, threads_str, batch_size, time_s, mem_val])
+                        f.flush()
                         f.flush()
                         print(f"  -> Parsed {len(res_list)} batch sizes.")
                         
