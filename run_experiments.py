@@ -77,13 +77,13 @@ class SilvaExperimentRunner:
             
             for dist in self.distributions:
                 for size in self.sizes:
-                    dataset_path = f"{self.datasets_dir}/{dist}/{size}_2.in"
-                    if not os.path.exists(dataset_path):
+                    dataset_base = f"{self.datasets_dir}/{dist}/{size}_2_1.in"
+                    if not os.path.exists(dataset_base):
                         continue
                         
                     print(f"\n--- Testing Dataset: {dist} - {size} ---")
                     for algo in self.algorithms:
-                        cmd = [self.binary_path, "-t", "build", "-a", algo, "-i", dataset_path]
+                        cmd = [self.binary_path, "-t", "build", "-a", algo, "-i", dataset_base]
                         output = self.run_command(cmd, timeout=300) # Increased timeout for single core 50M
                         
                         time_s = self.parse_time(output, "build")
@@ -108,13 +108,14 @@ class SilvaExperimentRunner:
             
             for dist in self.distributions:
                 for size in self.sizes:
-                    dataset_path = f"{self.datasets_dir}/{dist}/{size}_2.in"
-                    if not os.path.exists(dataset_path):
+                    dataset_base = f"{self.datasets_dir}/{dist}/{size}_2_1.in"
+                    dataset_update = f"{self.datasets_dir}/{dist}/{size}_2_2.in"
+                    if not os.path.exists(dataset_base) or not os.path.exists(dataset_update):
                         continue
                         
                     print(f"\n--- Testing Dataset: {dist} - {size} ---")
                     for algo in self.algorithms:
-                        cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_path]
+                        cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
                         output = self.run_command(cmd, timeout=300)
                         
                         threads_str = str(self.threads) if self.threads else "ALL"

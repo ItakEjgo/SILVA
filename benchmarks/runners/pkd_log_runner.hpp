@@ -34,6 +34,7 @@ struct PKDLogRunner {
     }
     
     ~PKDLogRunner() {
+        tree->delete_tree();
         delete tree;
     }
     

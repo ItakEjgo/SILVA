@@ -14,6 +14,7 @@ struct PKDRunner {
     parlay::sequence<point_t> current_pts; // PKDTree might hold pointers/references to the underlying slice, so we must keep it alive!
     
     PKDRunner() {}
+    ~PKDRunner() { pkd.delete_tree(); }
     
     void build_base(const std::vector<Value>& P_base) {
         current_pts.clear(); current_pts.resize(P_base.size());

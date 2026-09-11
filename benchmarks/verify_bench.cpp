@@ -8,6 +8,7 @@
 #include "runners/mvq_runner.hpp"
 #include "runners/pacz_runner.hpp"
 #include "runners/rlog_runner.hpp"
+#include "runners/pkd_log_runner.hpp"
 
 int main(int argc, char** argv) {
     cpam::commandLine cmd(argc, argv, "");
@@ -45,6 +46,12 @@ int main(int argc, char** argv) {
         RlogRunner runner(1);
         runner.build_base(P_base);
         BenchmarkEngine<RlogRunner>::run_workload(runner, data, "Rlog_1yr", q_step);
+    }
+
+        if (run_algo.find("Pkd") != std::string::npos || run_algo == "all" || run_algo == "combined") {
+        PKDLogRunner runner;
+        runner.build_base(P_base);
+        BenchmarkEngine<PKDLogRunner>::run_workload(runner, data, "PkdLogTree", q_step);
     }
 
     return 0;
