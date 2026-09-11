@@ -24,7 +24,7 @@ void line_splitter() {
 void run(int argc, char** argv) {
     cpam::commandLine cmd(argc, argv, "[-i <Path-to-Input>] [-u <Path-to-Update>] [-t <Task-Name>] [-a <Algorithm-Name>] "
                                       "[-r <Path-to-Range-Query>] [-real <Is-Real-Dataset?>] "
-                                      "[-k <KNN-K>] [-qn <Query-Num>]");
+                                      "[-br <Batch-Ratios>] [-k <KNN-K>] [-qn <Query-Num>]");
     
     if (!cmd.getOption("-t") || !cmd.getOption("-i") || !cmd.getOption("-a")) {
         cout << "[ERROR]: Missing required arguments: -t <Task-Name>, -i <Path-to-Input>, -a <Algorithm-Name>" << endl;
@@ -68,6 +68,16 @@ void run(int argc, char** argv) {
         10000000, 20000000, 50000000, 100000000
     };
 
+    // Batch ratios definition
+    string batch_ratios_str = cmd.getOptionValue("-br", "0.01,0.1,0.25,0.5,1.0");
+    parlay::sequence<double> batch_ratios;
+    size_t pos = 0;
+    while ((pos = batch_ratios_str.find(",")) != string::npos) {
+        batch_ratios.push_back(stod(batch_ratios_str.substr(0, pos)));
+        batch_ratios_str.erase(0, pos + 1);
+    }
+    batch_ratios.push_back(stod(batch_ratios_str));
+
     if (task == "build") {
         if (algo == "mvq" || algo == "combined") ZDTest::build_test(P_base);
         if (algo == "combined") line_splitter();
@@ -86,9 +96,9 @@ void run(int argc, char** argv) {
             cout << "[ERROR]: batch-insert requires -u <Path-to-Update>" << endl;
             return;
         }
-        if (algo == "mvq" || algo == "combined") ZDTest::batch_insert_test(P_base, P_update, batch_sizes);
+        if (algo == "mvq" || algo == "combined") ZDTest::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P_base, P_update, batch_sizes);
+        if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
         if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P_base, P_update, batch_sizes);
         if (algo == "combined") line_splitter();
@@ -99,9 +109,9 @@ void run(int argc, char** argv) {
         if (algo == "boost" || algo == "combined") BoostTest::batch_insert_test(P_base, P_update, batch_sizes);
     }
     else if (task == "batch-delete") {
-        if (algo == "mvq" || algo == "combined") ZDTest::batch_delete_test(P_base, batch_sizes);
+        if (algo == "mvq" || algo == "combined") ZDTest::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P_base, batch_sizes);
+        if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
         if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P_base, batch_sizes);
         if (algo == "combined") line_splitter();

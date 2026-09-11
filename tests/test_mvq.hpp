@@ -739,7 +739,7 @@ namespace ZDTest{
 
 
     template<typename PT>
-    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t> &batch_sizes){
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios){
 	    auto n = P_base.size();
 
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
@@ -748,42 +748,42 @@ namespace ZDTest{
 	    zdtree.build(P_set);
 
 		auto rand_p = shuffle_point(P_update);
+		parlay::parallel_for (0, rand_p.size(), [&](int i){
+			rand_p[i].id = n + i;
+		});
 
-		shared_ptr<mvq::BaseNode> new_ver = nullptr;
-		
-		for (auto &num_processed: batch_sizes){
-			if (num_processed > P_update.size()) num_processed = P_update.size();
-	    	auto P2 = rand_p.substr(0, num_processed);	// first x%
-	    	parlay::parallel_for (0, P2.size(), [&](int i){
-		    	P2[i].id = n + i;
-	    	});
+		for (auto ratio: batch_ratios){
+			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
+			std::vector<shared_ptr<mvq::BaseNode>> versions;
 
 			bool print_flag = true;
 	    	auto zdtree_insert_avg = time_loop(
 		    	3, 1.0, [&]() {
-					new_ver.reset();
+					versions.clear();
+					versions.push_back(zdtree.root);
 				},
 		    	[&]() {
-					// parlay::internal::timer t("debug", true);
-			    	P_set = get_sorted_points(P2);
-					// t.next("sort time");
-			    	new_ver = zdtree.multi_version_batch_insert_sorted(P_set, zdtree.root);
-					// t.next("insert time");
+					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_chunk);
+						auto P2_set = get_sorted_points(P2);
+						versions.push_back(zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()));
+					}
 		    	},
 	    	[&](){
 				if (print_flag){
-					cout << "# of points: " << zdtree.collect_records(new_ver).size() << endl;
+					cout << "# of points: " << zdtree.collect_records(versions.back()).size() << endl;
 					print_flag = false;
 				}
 			} );
 
-			cout << "[batch_size]: " << num_processed << endl;		
+			cout << "[batch_ratio]: " << ratio << endl;		
 	    	cout << fixed << setprecision(6) << "[zdtree]: batch insert time (avg): " << zdtree_insert_avg << endl;
 		}
     }
 
     template<typename PT>
-    void batch_delete_test(PT P_base, parlay::sequence<size_t> &batch_sizes){
+    void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios){
 	    auto n = P_base.size();
 
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
@@ -792,28 +792,31 @@ namespace ZDTest{
 
 		auto rand_p = shuffle_point(P_base);
 		
-		for (auto &num_processed: batch_sizes){
-			if (num_processed > P_base.size()) num_processed = P_base.size();
-	    	auto P2 = rand_p.substr(0, num_processed);	// first x%
-			shared_ptr<mvq::BaseNode> new_ver = nullptr;
+		for (auto ratio: batch_ratios){
+			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
+			std::vector<shared_ptr<mvq::BaseNode>> versions;
+
+			bool print_flag = true;
 	    	auto zdtree_delete_avg = time_loop(
 		    	3, 1.0, [&]() {
-					new_ver.reset();
+					versions.clear();
+					versions.push_back(zdtree.root);
 				},
 		    	[&]() {
-					// parlay::internal::timer t("debug", true);
-			    	// P_set = get_sorted_address(P2);
-			    	P_set = get_sorted_points(P2);
-					// t.next("sort time");
-			    	new_ver = zdtree.multi_version_batch_delete_sorted(P_set, zdtree.root);
-					// t.next("delete time");
+					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_chunk);
+						auto P2_set = get_sorted_points(P2);
+						versions.push_back(zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()));
+					}
 		    	},
 	    	[&](){
+				if (print_flag){
+					cout << "# of points: " << zdtree.collect_records(versions.back()).size() << endl;
+					print_flag = false;
+				}
 			} );
-			cout << "# of points: " << zdtree.collect_records(new_ver).size() << endl;
-			cout << "[batch_size]: " << num_processed << endl;
-	    	// cout << fixed << setprecision(6) << "[leaf copy time]: " << zd_leaf_copy_time << endl;
-	    	// cout << fixed << setprecision(6) << "[inte copy time]: " << zd_inte_copy_time << endl;
+			cout << "[batch_ratio]: " << ratio << endl;
 	    	cout << fixed << setprecision(6) << "[zdtree]: batch delete time (avg): " << zdtree_delete_avg << endl;
 		}
     }

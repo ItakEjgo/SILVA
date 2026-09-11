@@ -6,8 +6,9 @@ import argparse
 from datetime import datetime
 
 class SilvaExperimentRunner:
-    def __init__(self, threads=None):
+    def __init__(self, threads=None, ratios=None):
         self.threads = threads
+        self.ratios = ratios
         self.base_dir = "."
         self.binary_path = "build/main"
         self.datasets_dir = "dataset"
@@ -58,7 +59,7 @@ class SilvaExperimentRunner:
             return []
         
         results = []
-        pattern = r'\[batch_size\]:\s*(\d+)\n.*?(?:time \(avg\)):\s*([\d\.]+)'
+        pattern = r'\[batch_(?:size|ratio)\]:\s*([\d\.]+)\n.*?(?:time \(avg\)):\s*([\d\.]+)'
         matches = re.findall(pattern, output)
         for batch_size, time_s in matches:
             results.append((batch_size, time_s))
@@ -117,6 +118,8 @@ class SilvaExperimentRunner:
                     print(f"\n--- Testing Dataset: {dist} - {size} ---")
                     for algo in self.algorithms:
                         cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
+                        if self.ratios:
+                            cmd.extend(["-br", self.ratios])
                         output = self.run_command(cmd, timeout=300)
                         
                         threads_str = str(self.threads) if self.threads else "ALL"
@@ -147,10 +150,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SILVA Automated Experiment Framework")
     parser.add_argument("--task", choices=["build", "insert", "delete", "query", "all"], required=True, help="Experiment task to run")
     parser.add_argument("--threads", type=int, default=None, help="Restrict to N threads (uses taskset -c 0 to N-1 if specified)")
+    parser.add_argument("--ratios", type=str, default=None, help="Comma-separated batch ratios (e.g., '0.01,0.1,0.25,0.5,1.0')")
     
     args = parser.parse_args()
     
-    runner = SilvaExperimentRunner(threads=args.threads)
+    runner = SilvaExperimentRunner(threads=args.threads, ratios=args.ratios)
     
     if args.task in ["build", "all"]:
         runner.run_build_experiment()

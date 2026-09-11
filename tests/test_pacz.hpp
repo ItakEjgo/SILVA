@@ -638,36 +638,40 @@ namespace PACZ{
 	
 
 	template<typename PT>
-	void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
+	void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
 		auto n = P_base.size();
 		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
-		decltype(m1) m2;
 
 		auto rand_p = shuffle_point(P_update);
+		parlay::parallel_for (0, rand_p.size(), [&](int i){
+			rand_p[i].id = n + i;
+		});
 
-		for (auto &num_processed: batch_sizes){
-			if (num_processed > P_update.size()) num_processed = P_update.size();
-			auto P2 = rand_p.substr(0, num_processed);
+		for (auto ratio: batch_ratios){
+			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
+			std::vector<decltype(m1)> versions;
 
-	    	parlay::parallel_for (0, P2.size(), [&](int i){
-		    	P2[i].id = n + i;
-	    	});
 			bool print_flag = true;
 	    	auto cpam_insert_avg = time_loop(
 		    	3, 1.0, [&]() {
-					m2.clear();
+					versions.clear();
+					versions.push_back(m1);
 				},
 		    	[&]() {
-					m2 = PACZ::map_insert(P2, m1, use_hilbert);
+					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_chunk);
+						versions.push_back(PACZ::map_insert(P2, versions.back(), use_hilbert));
+					}
 		    	},
 	    	[&](){
 				if (print_flag){
-					cout << "# of points: " << m2.size() << endl;
+					cout << "# of points: " << versions.back().size() << endl;
 					print_flag = false;
 				}			
 			});
 
-			cout << "[batch_size]: " << num_processed << endl;
+			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 			else cout << "[Zorder-PACZ]: ";
 			cout << fixed << setprecision(6) << "batch insert time (avg): " << cpam_insert_avg << endl;
@@ -676,31 +680,35 @@ namespace PACZ{
 	}
 
 	template<typename PT>
-	void batch_delete_test(PT P_base, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
+	void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
 		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
-		decltype(m1) m2;
 		auto rand_p = shuffle_point(P_base);
 
-		for (auto &num_processed: batch_sizes){
-			if (num_processed > P_base.size()) num_processed = P_base.size();
-			auto P2 = rand_p.substr(0, num_processed);
+		for (auto ratio: batch_ratios){
+			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
+			std::vector<decltype(m1)> versions;
 			bool print_flag = true;
 
 	    	auto cpam_insert_avg = time_loop(
 		    	3, 1.0, [&]() {
-					m2.clear();
+					versions.clear();
+					versions.push_back(m1);
 				},
 		    	[&]() {
-					m2 = PACZ::map_delete(P2, m1, use_hilbert);
+					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_chunk);
+						versions.push_back(PACZ::map_delete(P2, versions.back(), use_hilbert));
+					}
 		    	},
 	    	[&](){
 				if (print_flag){
-					cout << "# of points: " << m2.size() << endl;
+					cout << "# of points: " << versions.back().size() << endl;
 					print_flag = false;
 				}
 			} );
 
-			cout << "[batch_size]: " << num_processed << endl;
+			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 			else cout << "[Zorder-PACZ]: ";
 			cout << fixed << setprecision(6) << "batch delete time (avg): " << cpam_insert_avg << endl;
