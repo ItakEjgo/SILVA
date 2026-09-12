@@ -50,6 +50,7 @@ namespace RlogTest {
                     std::vector<Value> batch(P_update_conv.begin() + offset, P_update_conv.begin() + offset + current_chunk);
                     parlay::internal::timer chunk_t;
                     tree.commit_inserts(batch);
+                    tree.check_and_compact(p);
                     double c_time = chunk_t.stop() * 1000.0;
                     if (i == 2) {
                         chunk_times.push_back(c_time);

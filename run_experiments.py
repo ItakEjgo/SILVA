@@ -129,7 +129,7 @@ class SilvaExperimentRunner:
                     for algo in self.algorithms:
                         cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
                         if self.ratios:
-                            cmd.extend(["-br", self.ratios])
+                            cmd.extend(["-br", self.ratios, "-p", "0.2"])
                         output = self.run_command(cmd, timeout=300)
                         
                         threads_str = str(self.threads) if self.threads else "ALL"
