@@ -773,7 +773,8 @@ namespace ZDTest{
                         3, 1.0, 
                         [&]() { test_ver.reset(); },
                         [&]() { 
-                            auto P2_set = get_sorted_points(P2);
+                            auto P2_raw = parlay::to_sequence(P2); // 严谨的深拷贝，将 slice 转为独立的 sequence
+                            auto P2_set = get_sorted_points(P2_raw);
                             test_ver = zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()); 
                         },
                         [&]() {}
@@ -826,7 +827,8 @@ namespace ZDTest{
                         3, 1.0, 
                         [&]() { test_ver.reset(); },
                         [&]() { 
-                            auto P2_set = get_sorted_points(P2);
+                            auto P2_raw = parlay::to_sequence(P2);
+                            auto P2_set = get_sorted_points(P2_raw);
                             test_ver = zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()); 
                         },
                         [&]() {}
