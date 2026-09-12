@@ -144,7 +144,70 @@ class SilvaExperimentRunner:
                         f.flush()
                         print(f"  -> Parsed {len(res_list)} batch sizes.")
                         
+        self.plot_results(csv_path, task_name)
         print(f"=== {task_name.upper()} Experiment Completed ===")
+    def plot_results(self, csv_path, task_name):
+        try:
+            import matplotlib.pyplot as plt
+            from collections import defaultdict
+        except ImportError:
+            print("[Warning] matplotlib not installed. Skipping plot generation.")
+            return
+
+        time_data = defaultdict(lambda: defaultdict(list))
+        mem_data = defaultdict(lambda: defaultdict(list))
+        
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            time_col = f"{task_name.capitalize()}_Time_Seconds"
+            for row in reader:
+                if row["Batch_Size"] == "N/A": continue
+                ds = f'{row["Distribution"]}-{row["Size"]}'
+                algo = row["Algorithm"]
+                batch = float(row["Batch_Size"])
+                time_s = float(row[time_col])
+                mem_mb = row["Memory_MB"]
+                
+                time_data[ds][algo].append((batch, time_s))
+                if mem_mb != "N/A" and mem_mb != "PARSE_ERROR":
+                    mem_data[ds][algo].append((batch, float(mem_mb)))
+
+        import os
+        for ds, algos in time_data.items():
+            plt.figure(figsize=(10, 6))
+            for algo, vals in algos.items():
+                vals.sort()
+                x = [v[0] for v in vals]
+                y = [v[1] for v in vals]
+                plt.plot(x, y, marker='o', label=algo)
+            plt.title(f'{task_name.capitalize()} Time vs Batch Size ({ds})')
+            plt.xlabel('Batch Size (Ratio)')
+            plt.ylabel('Time (Seconds)')
+            plt.xscale('log')
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(csv_path.replace('.csv', f'_{ds}_time.png'))
+            plt.close()
+
+        for ds, algos in mem_data.items():
+            plt.figure(figsize=(10, 6))
+            for algo, vals in algos.items():
+                vals.sort()
+                x = [v[0] for v in vals]
+                y = [v[1] for v in vals]
+                plt.plot(x, y, marker='o', label=algo)
+            plt.title(f'{task_name.capitalize()} Memory vs Batch Size ({ds})')
+            plt.xlabel('Batch Size (Ratio)')
+            plt.ylabel('Memory (MB)')
+            plt.xscale('log')
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(csv_path.replace('.csv', f'_{ds}_mem.png'))
+            plt.close()
+        print(f"Generated plots for {csv_path}")
+
 
     def run_batch_insert_experiment(self):
         self.run_batch_experiment("batch-insert", "insert")

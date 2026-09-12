@@ -122,12 +122,11 @@ public:
         if (!branch.remove_log.empty()) { remove_log.insert(remove_log.end(), branch.remove_log.begin(), branch.remove_log.end()); cache_valid = false; }
     }
     void check_and_compact(double p) {
-        if (insert_log.size() >= remove_log.size()) {
-            double net_added = insert_log.size() - remove_log.size();
-            if (net_added >= p * snapshot->size()) {
+        double log_size = insert_log.size() + remove_log.size();
+            if (log_size >= p * snapshot->size()) {
+             
                 compact();
             }
-        }
     }
     void check_and_compact(int current_year) {
         if (last_compact_year == 0) last_compact_year = current_year;

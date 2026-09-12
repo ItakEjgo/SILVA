@@ -12,7 +12,6 @@ struct PKDLogRunner {
     using tree_t = cpdd::ParallelKDtree<point_t>;
     
     tree_t* tree;
-    parlay::sequence<point_t> base_pts;
     
     std::vector<Value> insert_log;
     std::vector<Value> remove_log;
@@ -32,20 +31,19 @@ struct PKDLogRunner {
     PKDLogRunner() {
         tree = new tree_t();
     }
-    
     ~PKDLogRunner() {
-        tree->delete_tree();
-        delete tree;
+        if (tree) { tree->delete_tree(); delete tree; }
     }
     
     void build_base(const std::vector<Value>& P_base) {
-        base_pts.clear();
-        base_pts.resize(P_base.size());
-        for(size_t i=0; i<P_base.size(); i++) {
+        parlay::sequence<point_t> init_pts = parlay::sequence<point_t>::uninitialized(P_base.size());
+        parlay::parallel_for(0, P_base.size(), [&](size_t i) {
             std::array<double, 2> coords = {P_base[i].first.get<0>(), P_base[i].first.get<1>()};
-            base_pts[i] = point_t(coords, P_base[i].second);
-        }
-        tree->build(parlay::make_slice(base_pts), 2);
+            init_pts[i] = point_t(coords, P_base[i].second);
+        });
+        if (tree) { tree->delete_tree(); delete tree; }
+        tree = new tree_t();
+        tree->build(parlay::make_slice(init_pts), 2);
     }
     
     void reset_query_stats() {
@@ -68,7 +66,8 @@ struct PKDLogRunner {
         queryBox.second.pnt[1] = q_copy.second.y;
         
         // PkdTree range_query_serial writes to a buffer. We need a temporary buffer.
-        parlay::sequence<point_t> pkd_out(base_pts.size());
+        size_t tree_sz = (tree && tree->get_root() != nullptr) ? tree->get_root()->size : 0;
+        parlay::sequence<point_t> pkd_out(tree_sz);
         size_t base_cnt = tree->range_query_serial(queryBox, parlay::make_slice(pkd_out));
         
         for (size_t i = 0; i < base_cnt; i++) {
@@ -176,44 +175,61 @@ struct PKDLogRunner {
         }
         cache_valid = false;
     }
-
     void compact() {
         if (insert_log.empty() && remove_log.empty()) return;
         update_cache();
 
-        parlay::sequence<point_t> next_pts;
-        next_pts.reserve(base_pts.size() + insert_log.size());
-
-        for (const auto& p : base_pts) {
-            if (removed_ids.find(p.id) == removed_ids.end()) {
-                next_pts.push_back(p);
-            }
-        }
-        for (const auto& val : insert_log) {
-            if (removed_ids.find(val.second) == removed_ids.end()) {
-                std::array<double, 2> coords = {val.first.get<0>(), val.first.get<1>()};
-                next_pts.push_back(point_t(coords, val.second));
-            }
+        size_t tree_sz = 0;
+        if (tree && tree->get_root() != nullptr) {
+            tree_sz = tree->get_root()->size;
         }
 
-        base_pts = std::move(next_pts);
+        // 1. Parallel Flatten
+        parlay::sequence<point_t> tree_pts;
+        if (tree_sz > 0) {
+            tree_pts = parlay::sequence<point_t>::uninitialized(tree_sz);
+            tree->flatten(tree->get_root(), parlay::make_slice(tree_pts));
+        }
 
+        // 2. Parallel Filter (Old tree points)
+        auto is_alive = [&](const point_t& p) { 
+            return removed_ids.find(p.id) == removed_ids.end(); 
+        };
+        auto live_tree_pts = parlay::filter(tree_pts, is_alive);
+
+        // 3. Parallel Filter (New insert log)
+        auto log_is_alive = [&](const Value& v) { 
+            return removed_ids.find(v.second) == removed_ids.end(); 
+        };
+        auto live_log_pts = parlay::filter(insert_log, log_is_alive);
+
+        // 4. Parallel Combine
+        parlay::sequence<point_t> next_pts = parlay::sequence<point_t>::uninitialized(live_tree_pts.size() + live_log_pts.size());
+        
+        parlay::parallel_for(0, live_tree_pts.size(), [&](size_t i) {
+            next_pts[i] = live_tree_pts[i];
+        });
+        
+        parlay::parallel_for(0, live_log_pts.size(), [&](size_t i) {
+            std::array<double, 2> coords = {live_log_pts[i].first.get<0>(), live_log_pts[i].first.get<1>()};
+            next_pts[live_tree_pts.size() + i] = point_t(coords, live_log_pts[i].second);
+        });
+
+        // 5. Rebuild & Cleanup
         if (tree) { tree->delete_tree(); delete tree; }
         tree = new tree_t();
-        tree->build(parlay::make_slice(base_pts), 2);
+        tree->build(parlay::make_slice(next_pts), 2);
 
         insert_log.clear();
         remove_log.clear();
         removed_ids.clear();
         cache_valid = true;
     }
-
     void check_and_compact(double p) {
-        if (insert_log.size() >= remove_log.size()) {
-            double net_added = insert_log.size() - remove_log.size();
-            if (net_added >= p * base_pts.size()) {
-                compact();
-            }
+        double log_size = insert_log.size() + remove_log.size();
+        size_t tree_sz = (tree && tree->get_root() != nullptr) ? tree->get_root()->size : 0;
+        if (log_size >= p * tree_sz) {
+            compact();
         }
     }
     size_t calculate_tree_memory(tree_t::node* T) const {
