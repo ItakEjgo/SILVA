@@ -655,9 +655,11 @@ namespace ZDTest{
         [&](){
 		});
 		auto stat = zdtree.get_tree_statistics();
+		double mem_mb = 1.0 * (stat.mem_inte_nodes + stat.mem_leaf_nodes) / 1024.0 / 1024.0;
 		// auto node_num = zdtree.num_of_nodes();
 
 		// cout << "total # of nodes: " << node_num << endl;
+		cout << "[memory_MB]: " << mem_mb << endl;
 		cout << "[zdtree stats]: " << endl <<
 			"[# of inte nodes]: " << stat.num_inte_nodes << endl <<
 			"[# of leaf nodes]: " << stat.num_leaf_nodes << endl <<

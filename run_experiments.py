@@ -53,6 +53,14 @@ class SilvaExperimentRunner:
         if match:
             return match.group(1)
         return "PARSE_ERROR"
+    def parse_memory(self, output):
+        if output in ["TIMEOUT", "CRASH", None]:
+            return "N/A"
+        pattern = r'\[memory_MB\]:\s*([\d\.]+)'
+        match = re.search(pattern, output)
+        if match:
+            return match.group(1)
+        return "N/A"
 
     def parse_batch_time(self, output, keyword):
         if output in ["TIMEOUT", "CRASH", None]:
@@ -76,7 +84,7 @@ class SilvaExperimentRunner:
         
         with open(csv_path, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Distribution", "Size", "Algorithm", "Threads", "Build_Time_Seconds"])
+            writer.writerow(["Distribution", "Size", "Algorithm", "Threads", "Build_Time_Seconds", "Memory_MB"])
             
             for dist in self.distributions:
                 for size in self.sizes:
@@ -90,8 +98,9 @@ class SilvaExperimentRunner:
                         output = self.run_command(cmd, timeout=300) # Increased timeout for single core 50M
                         
                         time_s = self.parse_time(output, "build")
+                        mem_mb = self.parse_memory(output)
                         threads_str = str(self.threads) if self.threads else "ALL"
-                        writer.writerow([dist, size, algo, threads_str, time_s])
+                        writer.writerow([dist, size, algo, threads_str, time_s, mem_mb])
                         f.flush()
                         print(f"  -> Result: {time_s}s")
                         

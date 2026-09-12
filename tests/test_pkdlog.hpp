@@ -18,52 +18,75 @@ namespace PKDLogTest {
 
     void build_test(PT P) {
         auto P_conv = convert_points(P);
+        double final_mem = 0;
         auto run_f = [&]() {
             PKDLogRunner runner;
             runner.build_base(P_conv);
+            final_mem = runner.memory_usage().first;
         };
         double ms = time_loop(5, 1.0, [](){}, run_f, [](){}) * 1000.0;
+        std::cout << "[memory_MB]: " << final_mem << std::endl;
         std::cout << "[PkdLogTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
 
-    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<size_t>& batch_sizes) {
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios) {
         auto P_conv = convert_points(P_base);
-        for (size_t b_size : batch_sizes) {
-            size_t actual_b = std::min(b_size, P_update.size());
-            parlay::sequence<geobase::Point> adds(actual_b);
-            for(size_t i=0; i<actual_b; i++) adds[i] = P_update[i];
-            parlay::sequence<geobase::Point> rems;
-
+        for (double ratio : batch_ratios) {
+            size_t chunk_size = P_update.size() * ratio;
+            if (chunk_size == 0) chunk_size = 1;
+            
             double ms = 0;
+            double final_mem = 0;
             for (int i = 0; i < 3; i++) {
                 PKDLogRunner runner;
                 runner.build_base(P_conv);
+                
                 parlay::internal::timer t;
-                runner.commit(adds, rems);
+                size_t offset = 0;
+                while (offset < P_update.size()) {
+                    size_t current_chunk = std::min(chunk_size, P_update.size() - offset);
+                    parlay::sequence<geobase::Point> adds(current_chunk);
+                    for(size_t j=0; j<current_chunk; j++) adds[j] = P_update[offset + j];
+                    parlay::sequence<geobase::Point> rems; // empty
+                    runner.commit(adds, rems);
+                    offset += current_chunk;
+                }
                 ms += t.stop() * 1000.0;
+                if (i == 2) final_mem = runner.memory_usage().first;
             }
-            std::cout << "[batch_size]: " << actual_b << std::endl;
+            std::cout << "[memory_MB]: " << final_mem << std::endl;
+            std::cout << "[batch_ratio]: " << ratio << std::endl;
             std::cout << "[PkdLogTree]: batch insert time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
         }
     }
 
-    void batch_delete_test(PT P_base, parlay::sequence<size_t>& batch_sizes) {
+    void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios) {
         auto P_conv = convert_points(P_base);
-        for (size_t b_size : batch_sizes) {
-            size_t actual_b = std::min(b_size, P_base.size());
-            parlay::sequence<geobase::Point> adds;
-            parlay::sequence<geobase::Point> rems(actual_b);
-            for(size_t i=0; i<actual_b; i++) rems[i] = P_base[i];
-
+        for (double ratio : batch_ratios) {
+            size_t chunk_size = P_base.size() * ratio;
+            if (chunk_size == 0) chunk_size = 1;
+            
             double ms = 0;
+            double final_mem = 0;
             for (int i = 0; i < 3; i++) {
                 PKDLogRunner runner;
                 runner.build_base(P_conv);
+                
                 parlay::internal::timer t;
-                runner.commit(adds, rems);
+                size_t offset = 0;
+                while (offset < P_base.size()) {
+                    size_t current_chunk = std::min(chunk_size, P_base.size() - offset);
+                    parlay::sequence<geobase::Point> adds; // empty
+                    parlay::sequence<geobase::Point> rems(current_chunk);
+                    for(size_t j=0; j<current_chunk; j++) rems[j] = P_base[offset + j];
+                    runner.commit(adds, rems);
+                    offset += current_chunk;
+                }
                 ms += t.stop() * 1000.0;
+                if (i == 2) final_mem = runner.memory_usage().first;
             }
-            std::cout << "[batch_size]: " << actual_b << std::endl;
+            std::cout << "[memory_MB]: " << final_mem << std::endl;
+            std::cout << "[batch_ratio]: " << ratio << std::endl;
             std::cout << "[PkdLogTree]: batch delete time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
         }
     }

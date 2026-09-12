@@ -506,7 +506,8 @@ namespace PACZ{
 		auto f_noop = [&](const auto &et){
 			return 0;
 		};
-
+		double mem_mb = 1.0 * tree.size_in_bytes(f_noop) / 1024.0 / 1024.0;
+		cout << "[memory_MB]: " << mem_mb << endl;
 		cout << "[pacz memory usage]: " << endl <<
 			"[# of inte nodes]: " << num_inte_nodes << endl << 
 			"[# of leaf nodes]: " << num_leaf_nodes << endl <<

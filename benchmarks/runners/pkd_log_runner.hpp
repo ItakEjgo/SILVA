@@ -176,8 +176,27 @@ struct PKDLogRunner {
         }
         cache_valid = false;
     }
-    
+    size_t calculate_tree_memory(tree_t::node* T) const {
+        if (T == nullptr) return 0;
+        if (T->is_leaf) {
+            return sizeof(tree_t::leaf) + tree_t::LEAVE_WRAP * sizeof(point_t);
+        }
+        
+        tree_t::interior* TI = static_cast<tree_t::interior*>(T);
+        size_t l = 0, r = 0;
+        parlay::par_do_if(TI->size > 1000,
+            [&]() { l = calculate_tree_memory(TI->left); },
+            [&]() { r = calculate_tree_memory(TI->right); }
+        );
+        return sizeof(tree_t::interior) + l + r;
+    }
+
     std::pair<double, double> memory_usage() const {
-        return {0.0, 0.0};
+        size_t index_bytes = calculate_tree_memory(const_cast<tree_t*>(tree)->get_root());
+        size_t log_bytes = (insert_log.capacity() + remove_log.capacity()) * sizeof(Value) + 
+                           removed_ids.bucket_count() * sizeof(void*) + 
+                           removed_ids.size() * sizeof(size_t);
+        double mem_mb = (index_bytes + log_bytes) / (1024.0 * 1024.0);
+        return {mem_mb, mem_mb};
     }
 };
