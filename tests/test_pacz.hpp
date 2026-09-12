@@ -658,13 +658,19 @@ namespace PACZ{
 					versions.clear();
 					versions.push_back(m1);
 				},
-		    	[&]() {
-					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-						auto P2 = rand_p.substr(i, current_chunk);
-						versions.push_back(PACZ::map_insert(P2, versions.back(), use_hilbert));
-					}
-		    	},
+			    	[&]() {
+						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+							auto P2 = rand_p.substr(i, current_chunk);
+                           parlay::internal::timer chunk_t;
+							versions.push_back(PACZ::map_insert(P2, versions.back(), use_hilbert));
+                           double c_time = chunk_t.stop() * 1000.0;
+                           if (print_flag) {
+                               cout << "[per_chunk_time_val]: " << c_time << endl;
+                               cout << "[per_chunk_mem_val]: " << cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
+                           }
+						}
+			    	},
 	    	[&](){
 				if (print_flag){
 					cout << "# of points: " << versions.back().size() << endl;
@@ -697,13 +703,19 @@ namespace PACZ{
 					versions.clear();
 					versions.push_back(m1);
 				},
-		    	[&]() {
-					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-						auto P2 = rand_p.substr(i, current_chunk);
-						versions.push_back(PACZ::map_delete(P2, versions.back(), use_hilbert));
-					}
-		    	},
+			    	[&]() {
+						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+							auto P2 = rand_p.substr(i, current_chunk);
+                           parlay::internal::timer chunk_t;
+							versions.push_back(PACZ::map_delete(P2, versions.back(), use_hilbert));
+                           double c_time = chunk_t.stop() * 1000.0;
+                           if (print_flag) {
+                               cout << "[per_chunk_time_val]: " << c_time << endl;
+                               cout << "[per_chunk_mem_val]: " << cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
+                           }
+						}
+			    	},
 	    	[&](){
 				if (print_flag){
 					cout << "# of points: " << versions.back().size() << endl;

@@ -37,6 +37,8 @@ namespace PKDTest {
             
             double ms = 0;
             double final_mem = 0;
+            std::vector<double> chunk_times;
+            std::vector<double> chunk_mems;
             for (int i = 0; i < 3; i++) {
                 PKDRunner runner;
                 runner.build_base(P_conv);
@@ -48,12 +50,31 @@ namespace PKDTest {
                     parlay::sequence<geobase::Point> adds(current_chunk);
                     for(size_t j=0; j<current_chunk; j++) adds[j] = P_update[offset + j];
                     parlay::sequence<geobase::Point> rems; // empty
+                    parlay::internal::timer chunk_t;
+
                     runner.commit(adds, rems);
+
+                    double c_time = chunk_t.stop() * 1000.0;
+
+                    if (i == 2) {
+
+                        chunk_times.push_back(c_time);
+
+                        chunk_mems.push_back(runner.memory_usage().first);
+
+                    }
+
                     offset += current_chunk;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) final_mem = runner.memory_usage().first;
             }
+            std::cout << "[per_chunk_time]: ";
+            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << std::endl;
+            std::cout << "[per_chunk_mem]: ";
+            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
             std::cout << "[PkdTree]: batch insert time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
@@ -68,6 +89,8 @@ namespace PKDTest {
             
             double ms = 0;
             double final_mem = 0;
+            std::vector<double> chunk_times;
+            std::vector<double> chunk_mems;
             for (int i = 0; i < 3; i++) {
                 PKDRunner runner;
                 runner.build_base(P_conv);
@@ -79,12 +102,31 @@ namespace PKDTest {
                     parlay::sequence<geobase::Point> adds; // empty
                     parlay::sequence<geobase::Point> rems(current_chunk);
                     for(size_t j=0; j<current_chunk; j++) rems[j] = P_base[offset + j];
+                    parlay::internal::timer chunk_t;
+
                     runner.commit(adds, rems);
+
+                    double c_time = chunk_t.stop() * 1000.0;
+
+                    if (i == 2) {
+
+                        chunk_times.push_back(c_time);
+
+                        chunk_mems.push_back(runner.memory_usage().first);
+
+                    }
+
                     offset += current_chunk;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) final_mem = runner.memory_usage().first;
             }
+            std::cout << "[per_chunk_time]: ";
+            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << std::endl;
+            std::cout << "[per_chunk_mem]: ";
+            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
             std::cout << "[PkdTree]: batch delete time (avg): " << (ms / 3.0) / 1000.0 << std::endl;

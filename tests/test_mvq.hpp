@@ -764,14 +764,20 @@ namespace ZDTest{
 					versions.clear();
 					versions.push_back(zdtree.root);
 				},
-		    	[&]() {
-					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-						auto P2 = rand_p.substr(i, current_chunk);
-						auto P2_set = get_sorted_points(P2);
-						versions.push_back(zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()));
-					}
-		    	},
+			    	[&]() {
+						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+							auto P2 = rand_p.substr(i, current_chunk);
+							auto P2_set = get_sorted_points(P2);
+                           parlay::internal::timer chunk_t;
+							versions.push_back(zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()));
+                           double c_time = chunk_t.stop() * 1000.0;
+                           if (print_flag) {
+                               cout << "[per_chunk_time_val]: " << c_time << endl;
+                               cout << "[per_chunk_mem_val]: " << mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
+                           }
+						}
+			    	},
 	    	[&](){
 				if (print_flag){
 					cout << "# of points: " << zdtree.collect_records(versions.back()).size() << endl;
@@ -806,14 +812,20 @@ namespace ZDTest{
 					versions.clear();
 					versions.push_back(zdtree.root);
 				},
-		    	[&]() {
-					for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-						size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-						auto P2 = rand_p.substr(i, current_chunk);
-						auto P2_set = get_sorted_points(P2);
-						versions.push_back(zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()));
-					}
-		    	},
+			    	[&]() {
+						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+							auto P2 = rand_p.substr(i, current_chunk);
+							auto P2_set = get_sorted_points(P2);
+                           parlay::internal::timer chunk_t;
+							versions.push_back(zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()));
+                           double c_time = chunk_t.stop() * 1000.0;
+                           if (print_flag) {
+                               cout << "[per_chunk_time_val]: " << c_time << endl;
+                               cout << "[per_chunk_mem_val]: " << mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
+                           }
+						}
+			    	},
 	    	[&](){
 				if (print_flag){
 					cout << "# of points: " << zdtree.collect_records(versions.back()).size() << endl;
