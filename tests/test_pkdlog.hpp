@@ -39,41 +39,44 @@ namespace PKDLogTest {
         for (double ratio : batch_ratios) {
             size_t cur_batch_size = rand_p.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1;
-            
-            double ms = 0;
-            double final_mem = 0;
             std::vector<double> batch_times;
             std::vector<double> batch_mems;
-            for (int i = 0; i < 3; i++) {
-                PKDLogRunner runner;
-                runner.build_base(P_conv);
-                
-                parlay::internal::timer t;
-                size_t offset = 0;
-                while (offset < rand_p.size()) {
-                    size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - offset);
-                    parlay::sequence<geobase::Point> adds(current_batch_size);
-                    for(size_t j=0; j<current_batch_size; j++) adds[j] = rand_p[offset + j];
-                    parlay::sequence<geobase::Point> rems; // empty
-                    parlay::internal::timer batch_t;
+            double total_ms = 0;
 
-                    runner.commit(adds, rems);
-                    runner.check_and_compact(p);
+            PKDLogRunner runner;
+            runner.build_base(P_conv);
 
-                    double b_time = batch_t.stop() * 1000.0;
+            for (size_t offset = 0; offset < rand_p.size(); offset += cur_batch_size) {
+                size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - offset);
+                parlay::sequence<geobase::Point> adds(current_batch_size);
+                for(size_t j=0; j<current_batch_size; j++) adds[j] = rand_p[offset + j];
+                parlay::sequence<geobase::Point> rems; // empty
 
-                    if (i == 2) {
+                size_t orig_insert_log_sz = runner.insert_log.size();
+                double mem_recorded = 0;
 
-                        batch_times.push_back(b_time);
-
-                        batch_mems.push_back(runner.memory_usage().first);
-
+                double batch_avg = time_loop(
+                    3, 1.0, 
+                    [&]() { 
+                        runner.insert_log.resize(orig_insert_log_sz); 
+                        runner.cache_valid = false;
+                    },
+                    [&]() { 
+                        runner.commit(adds, rems);
+                    },
+                    [&]() {
+                        mem_recorded = runner.memory_usage().first;
                     }
+                );
 
-                    offset += current_batch_size;
-                }
-                ms += t.stop() * 1000.0;
-                if (i == 2) final_mem = runner.memory_usage().first;
+                runner.insert_log.resize(orig_insert_log_sz); 
+                runner.cache_valid = false;
+                runner.commit(adds, rems);
+                runner.check_and_compact(p);
+
+                batch_times.push_back(batch_avg * 1000.0);
+                total_ms += batch_avg * 1000.0;
+                batch_mems.push_back(runner.memory_usage().first);
             }
             std::cout << "[per_batch_time]: ";
             for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
@@ -81,9 +84,9 @@ namespace PKDLogTest {
             std::cout << "[per_batch_mem]: ";
             for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[memory_MB]: " << final_mem << std::endl;
+            std::cout << "[memory_MB]: " << batch_mems.back() << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
-            std::cout << "[PkdLogTree]: batch insert time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
+            std::cout << "[PkdLogTree]: batch insert time (avg): " << (total_ms / 1000.0) << std::endl;
         }
     }
 
@@ -94,40 +97,44 @@ namespace PKDLogTest {
             size_t cur_batch_size = P_base.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1;
             
-            double ms = 0;
-            double final_mem = 0;
             std::vector<double> batch_times;
             std::vector<double> batch_mems;
-            for (int i = 0; i < 3; i++) {
-                PKDLogRunner runner;
-                runner.build_base(P_conv);
-                
-                parlay::internal::timer t;
-                size_t offset = 0;
-                while (offset < P_base.size()) {
-                    size_t current_batch_size = std::min(cur_batch_size, P_base.size() - offset);
-                    parlay::sequence<geobase::Point> adds; // empty
-                    parlay::sequence<geobase::Point> rems(current_batch_size);
-                    for(size_t j=0; j<current_batch_size; j++) rems[j] = rand_p[offset + j];
-                    parlay::internal::timer batch_t;
+            double total_ms = 0;
 
-                    runner.commit(adds, rems);
-                    runner.check_and_compact(p);
+            PKDLogRunner runner;
+            runner.build_base(P_conv);
 
-                    double b_time = batch_t.stop() * 1000.0;
+            for (size_t offset = 0; offset < P_base.size(); offset += cur_batch_size) {
+                size_t current_batch_size = std::min(cur_batch_size, P_base.size() - offset);
+                parlay::sequence<geobase::Point> adds; // empty
+                parlay::sequence<geobase::Point> rems(current_batch_size);
+                for(size_t j=0; j<current_batch_size; j++) rems[j] = rand_p[offset + j];
 
-                    if (i == 2) {
+                size_t orig_remove_log_sz = runner.remove_log.size();
+                double mem_recorded = 0;
 
-                        batch_times.push_back(b_time);
-
-                        batch_mems.push_back(runner.memory_usage().first);
-
+                double batch_avg = time_loop(
+                    3, 1.0, 
+                    [&]() { 
+                        runner.remove_log.resize(orig_remove_log_sz); 
+                        runner.cache_valid = false;
+                    },
+                    [&]() { 
+                        runner.commit(adds, rems);
+                    },
+                    [&]() {
+                        mem_recorded = runner.memory_usage().first;
                     }
+                );
 
-                    offset += current_batch_size;
-                }
-                ms += t.stop() * 1000.0;
-                if (i == 2) final_mem = runner.memory_usage().first;
+                runner.remove_log.resize(orig_remove_log_sz); 
+                runner.cache_valid = false;
+                runner.commit(adds, rems);
+                runner.check_and_compact(p);
+
+                batch_times.push_back(batch_avg * 1000.0);
+                total_ms += batch_avg * 1000.0;
+                batch_mems.push_back(runner.memory_usage().first);
             }
             std::cout << "[per_batch_time]: ";
             for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
@@ -135,9 +142,9 @@ namespace PKDLogTest {
             std::cout << "[per_batch_mem]: ";
             for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[memory_MB]: " << final_mem << std::endl;
+            std::cout << "[memory_MB]: " << batch_mems.back() << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
-            std::cout << "[PkdLogTree]: batch delete time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
+            std::cout << "[PkdLogTree]: batch delete time (avg): " << (total_ms / 1000.0) << std::endl;
         }
     }
 

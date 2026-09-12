@@ -782,6 +782,7 @@ namespace ZDTest{
                     batch_times.push_back(batch_avg * 1000.0);
                     total_ms += batch_avg * 1000.0;
                     versions.push_back(test_ver);
+                    cout << "[versions count]: " << versions.size() << endl;
                     batch_mems.push_back(mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
                 }
 
@@ -835,6 +836,7 @@ namespace ZDTest{
                     batch_times.push_back(batch_avg * 1000.0);
                     total_ms += batch_avg * 1000.0;
                     versions.push_back(test_ver);
+                    cout << "[versions count]: " << versions.size() << endl;
                     batch_mems.push_back(mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
                 }
 
