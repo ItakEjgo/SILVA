@@ -135,6 +135,26 @@ class SilvaExperimentRunner:
                         threads_str = str(self.threads) if self.threads else "ALL"
                         
                         res_list = self.parse_batch_time(output, action_keyword)
+
+                        # Capture and plot per-chunk data!
+                        chunk_times_matches = re.findall(r'\[per_chunk_time\]:\s*(.*)', output)
+                        chunk_mems_matches = re.findall(r'\[per_chunk_mem\]:\s*(.*)', output)
+                        if not chunk_times_matches and '[per_chunk_time_val]:' in output:
+                            times_vals = re.findall(r'\[per_chunk_time_val\]:\s*([\d\.]+)', output)
+                            mems_vals = re.findall(r'\[per_chunk_mem_val\]:\s*([\d\.]+)', output)
+                            if times_vals: chunk_times_matches = [','.join(times_vals)]
+                            if mems_vals: chunk_mems_matches = [','.join(mems_vals)]
+
+                        if chunk_times_matches and chunk_mems_matches and res_list:
+                            for idx, (batch_size, _, _) in enumerate(res_list):
+                                if idx < len(chunk_times_matches) and idx < len(chunk_mems_matches):
+                                    t_str = chunk_times_matches[idx].strip()
+                                    m_str = chunk_mems_matches[idx].strip()
+                                    if t_str and m_str:
+                                        t_arr = [float(x) for x in t_str.split(',') if x]
+                                        m_arr = [float(x) for x in m_str.split(',') if x]
+                                        self.plot_single_batch(task_name, dist, size, algo, batch_size, t_arr, m_arr)
+
                         if not res_list:
                             writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR", "N/A"])
                         else:
@@ -146,6 +166,39 @@ class SilvaExperimentRunner:
                         
         self.plot_results(csv_path, task_name)
         print(f"=== {task_name.upper()} Experiment Completed ===")
+
+    def plot_single_batch(self, task_name, dist, size, algo, ratio, times, mems):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            return
+            
+        import os
+        plot_dir = os.path.join(self.results_dir, "chunk_plots")
+        os.makedirs(plot_dir, exist_ok=True)
+        
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        
+        color = 'tab:red'
+        ax1.set_xlabel('Chunk Index')
+        ax1.set_ylabel('Time (ms)', color=color)
+        ax1.plot(range(1, len(times) + 1), times, color=color, marker='o', markersize=3, label='Time (ms)')
+        ax1.tick_params(axis='y', labelcolor=color)
+        
+        ax2 = ax1.twinx()  
+        color = 'tab:blue'
+        ax2.set_ylabel('Memory (MB)', color=color)  
+        ax2.plot(range(1, len(mems) + 1), mems, color=color, marker='s', markersize=3, label='Memory (MB)')
+        ax2.tick_params(axis='y', labelcolor=color)
+        
+        plt.title(f'{task_name.capitalize()} Per-Chunk - {algo} (Ratio={ratio}, {dist}-{size})')
+        fig.tight_layout()
+        
+        out_png = os.path.join(plot_dir, f'{task_name}_{algo}_ratio{ratio}_{dist}_{size}.png')
+        plt.savefig(out_png)
+        plt.close()
+        print(f"  -> Generated per-chunk plot for {algo} (Ratio={ratio})")
+
     def plot_results(self, csv_path, task_name):
         try:
             import matplotlib.pyplot as plt
