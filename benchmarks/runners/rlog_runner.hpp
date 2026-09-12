@@ -57,7 +57,7 @@ struct RlogRunner {
         
         tree->merge(branch);
         history.push_back(branch);
-        tree->check_and_compact(history.size()); // Simulate year increment
+        tree->check_and_compact((int)history.size()); // Simulate year increment
     }
     
     std::pair<double, double> memory_usage() const {

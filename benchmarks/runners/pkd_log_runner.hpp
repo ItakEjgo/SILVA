@@ -176,6 +176,46 @@ struct PKDLogRunner {
         }
         cache_valid = false;
     }
+
+    void compact() {
+        if (insert_log.empty() && remove_log.empty()) return;
+        update_cache();
+
+        parlay::sequence<point_t> next_pts;
+        next_pts.reserve(base_pts.size() + insert_log.size());
+
+        for (const auto& p : base_pts) {
+            if (removed_ids.find(p.id) == removed_ids.end()) {
+                next_pts.push_back(p);
+            }
+        }
+        for (const auto& val : insert_log) {
+            if (removed_ids.find(val.second) == removed_ids.end()) {
+                std::array<double, 2> coords = {val.first.get<0>(), val.first.get<1>()};
+                next_pts.push_back(point_t(coords, val.second));
+            }
+        }
+
+        base_pts = std::move(next_pts);
+
+        if (tree) { tree->delete_tree(); delete tree; }
+        tree = new tree_t();
+        tree->build(parlay::make_slice(base_pts), 2);
+
+        insert_log.clear();
+        remove_log.clear();
+        removed_ids.clear();
+        cache_valid = true;
+    }
+
+    void check_and_compact(double p) {
+        if (insert_log.size() >= remove_log.size()) {
+            double net_added = insert_log.size() - remove_log.size();
+            if (net_added >= p * base_pts.size()) {
+                compact();
+            }
+        }
+    }
     size_t calculate_tree_memory(tree_t::node* T) const {
         if (T == nullptr) return 0;
         if (T->is_leaf) {

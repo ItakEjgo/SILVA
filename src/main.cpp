@@ -65,6 +65,7 @@ void run(int argc, char** argv) {
 
     // Batch ratios definition
     string batch_ratios_str = cmd.getOptionValue("-br", "0.01,0.1,0.25,0.5,1.0");
+    double compact_p = cmd.getOptionDoubleValue("-p", 1.0);
     parlay::sequence<double> batch_ratios;
     size_t pos = 0;
     while ((pos = batch_ratios_str.find(",")) != string::npos) {
@@ -95,11 +96,11 @@ void run(int argc, char** argv) {
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P_base, P_update, batch_ratios);
+        if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P_base, P_update, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "pkdlog" || algo == "combined") PKDLogTest::batch_insert_test(P_base, P_update, batch_ratios);
+        if (algo == "pkdlog" || algo == "combined") PKDLogTest::batch_insert_test(P_base, P_update, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
         if (algo == "boost" || algo == "combined") BoostTest::batch_insert_test(P_base, P_update, batch_ratios);
     }
@@ -108,11 +109,11 @@ void run(int argc, char** argv) {
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P_base, batch_ratios);
+        if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P_base, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "pkdlog" || algo == "combined") PKDLogTest::batch_delete_test(P_base, batch_ratios);
+        if (algo == "pkdlog" || algo == "combined") PKDLogTest::batch_delete_test(P_base, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
         if (algo == "boost" || algo == "combined") BoostTest::batch_delete_test(P_base, batch_ratios);
     }

@@ -29,7 +29,7 @@ namespace PKDLogTest {
         std::cout << "[PkdLogTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
 
-    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios) {
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
         for (double ratio : batch_ratios) {
             size_t chunk_size = P_update.size() * ratio;
@@ -53,6 +53,7 @@ namespace PKDLogTest {
                     parlay::internal::timer chunk_t;
 
                     runner.commit(adds, rems);
+                    runner.check_and_compact(p);
 
                     double c_time = chunk_t.stop() * 1000.0;
 
@@ -81,7 +82,7 @@ namespace PKDLogTest {
         }
     }
 
-    void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios) {
+    void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
         for (double ratio : batch_ratios) {
             size_t chunk_size = P_base.size() * ratio;
@@ -105,6 +106,7 @@ namespace PKDLogTest {
                     parlay::internal::timer chunk_t;
 
                     runner.commit(adds, rems);
+                    runner.check_and_compact(p);
 
                     double c_time = chunk_t.stop() * 1000.0;
 

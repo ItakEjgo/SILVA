@@ -29,7 +29,7 @@ namespace RlogTest {
         std::cout << "[RlogTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
 
-    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios) {
+    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
         auto P_update_conv = convert_points(P_update);
         for (double ratio : batch_ratios) {
@@ -51,7 +51,10 @@ namespace RlogTest {
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) {
-                    final_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+                    size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
+                                        tree.removed_ids.bucket_count() * sizeof(void*) + 
+                                        tree.removed_ids.size() * sizeof(size_t);
+                    final_mem = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
                 }
             }
             std::cout << "[memory_MB]: " << final_mem << std::endl;
@@ -60,13 +63,15 @@ namespace RlogTest {
         }
     }
 
-    void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios) {
+    void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
         for (double ratio : batch_ratios) {
             size_t chunk_size = P_base.size() * ratio;
             if (chunk_size == 0) chunk_size = 1;
             double ms = 0;
             double final_mem = 0;
+            std::vector<double> chunk_times;
+            std::vector<double> chunk_mems;
             for (int i = 0; i < 3; i++) {
                 RlogTree tree(1);
                 tree.build_base(P_conv); // Build full tree first
@@ -78,14 +83,33 @@ namespace RlogTest {
                     std::vector<Value> batch(P_conv.begin() + offset, P_conv.begin() + offset + current_chunk);
                     RlogBranch branch;
                     branch.remove_log = batch;
+                    parlay::internal::timer chunk_t;
                     tree.merge(branch); // Mark as deleted
+                    tree.check_and_compact(p);
+                    double c_time = chunk_t.stop() * 1000.0;
+                    if (i == 2) {
+                        chunk_times.push_back(c_time);
+                        size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
+                                            tree.removed_ids.bucket_count() * sizeof(void*) + 
+                                            tree.removed_ids.size() * sizeof(size_t);
+                        chunk_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
+                    }
                     offset += current_chunk;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) {
-                    final_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+                    size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
+                                        tree.removed_ids.bucket_count() * sizeof(void*) + 
+                                        tree.removed_ids.size() * sizeof(size_t);
+                    final_mem = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
                 }
             }
+            std::cout << "[per_chunk_time]: ";
+            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << std::endl;
+            std::cout << "[per_chunk_mem]: ";
+            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
             std::cout << "[RlogTree]: batch delete time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
