@@ -1,0 +1,11 @@
+Distribution,Size,Algorithm,Threads,Batch_Size,Batch-insert_Time_Seconds,Memory_MB
+uniform,1M,mvq,1,0.01,1.222043,942.228
+uniform,1M,mvq,1,0.100000,0.572423,511.892838
+uniform,1M,mvq,1,0.250000,0.369529,304.607452
+uniform,1M,mvq,1,0.500000,0.280834,203.346603
+uniform,1M,mvq,1,1.000000,0.236323,146.210861
+uniform,1M,pacz,1,0.01,2.210462,3865.74
+uniform,1M,pacz,1,0.100000,0.636934,872.464279
+uniform,1M,pacz,1,0.250000,0.379268,396.637367
+uniform,1M,pacz,1,0.500000,0.280889,236.246506
+uniform,1M,pacz,1,1.000000,0.232463,155.960442
