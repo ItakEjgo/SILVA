@@ -14,8 +14,8 @@ class SilvaExperimentRunner:
         self.datasets_dir = "dataset"
         self.results_dir = "results_experiments"
         
-        self.distributions = ["uniform", "varden"]
-        self.sizes = ["1M", "10M", "20M", "30M", "40M", "50M"]
+        self.distributions = ["uniform"]
+        self.sizes = ["1M"]
         self.algorithms = ["mvq", "pacz"]
         
         os.makedirs(self.results_dir, exist_ok=True)
@@ -174,13 +174,13 @@ class SilvaExperimentRunner:
             return
             
         import os
-        plot_dir = os.path.join(self.results_dir, "chunk_plots", f"ratio_{ratio}")
+        plot_dir = os.path.join(self.results_dir, "batch_plots", f"ratio_{ratio}")
         os.makedirs(plot_dir, exist_ok=True)
         
         fig, ax1 = plt.subplots(figsize=(10, 6))
         
         color = 'tab:red'
-        ax1.set_xlabel('Chunk Index')
+        ax1.set_xlabel('Batch Index')
         ax1.set_ylabel('Time (ms)', color=color)
         ax1.plot(range(1, len(times) + 1), times, color=color, marker='o', markersize=3, label='Time (ms)')
         ax1.tick_params(axis='y', labelcolor=color)
@@ -191,7 +191,7 @@ class SilvaExperimentRunner:
         ax2.plot(range(1, len(mems) + 1), mems, color=color, marker='s', markersize=3, label='Memory (MB)')
         ax2.tick_params(axis='y', labelcolor=color)
         
-        plt.title(f'{task_name.capitalize()} Per-Chunk - {algo} (Ratio={ratio}, {dist}-{size})')
+        plt.title(f'{task_name.capitalize()} Per-Batch - {algo} (Ratio={ratio}, {dist}-{size})')
         fig.tight_layout()
         
         out_png = os.path.join(plot_dir, f'{task_name}_{algo}_ratio{ratio}_{dist}_{size}.png')
