@@ -172,9 +172,9 @@ class SilvaExperimentRunner:
             import matplotlib.pyplot as plt
         except ImportError:
             return
-            
         import os
-        plot_dir = os.path.join(self.results_dir, "batch_plots", f"ratio_{ratio}")
+        ratio_str = f"{float(ratio):g}"
+        plot_dir = os.path.join(self.results_dir, "batch_plots", f"ratio_{ratio_str}")
         os.makedirs(plot_dir, exist_ok=True)
         
         fig, ax1 = plt.subplots(figsize=(10, 6))
