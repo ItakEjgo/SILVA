@@ -40,39 +40,45 @@ namespace RlogTest {
         for (double ratio : batch_ratios) {
             size_t cur_batch_size = P_update_conv.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1; // at least 1 point
-            double ms = 0;
-            double final_mem = 0;
             std::vector<double> batch_times;
             std::vector<double> batch_mems;
-            for (int i = 0; i < 3; i++) {
-                RlogTree tree(1);
-                tree.build_base(P_conv);
+            double total_ms = 0;
+
+            RlogTree tree(1);
+            tree.build_base(P_conv);
+
+            for (size_t offset = 0; offset < P_update_conv.size(); offset += cur_batch_size) {
+                size_t current_batch_size = std::min(cur_batch_size, P_update_conv.size() - offset);
+                std::vector<Value> batch(P_update_conv.begin() + offset, P_update_conv.begin() + offset + current_batch_size);
                 
-                parlay::internal::timer t;
-                size_t offset = 0;
-                while (offset < P_update_conv.size()) {
-                    size_t current_batch_size = std::min(cur_batch_size, P_update_conv.size() - offset);
-                    std::vector<Value> batch(P_update_conv.begin() + offset, P_update_conv.begin() + offset + current_batch_size);
-                    parlay::internal::timer batch_t;
-                    tree.commit_inserts(batch);
-                    tree.check_and_compact(p);
-                    double b_time = batch_t.stop() * 1000.0;
-                    if (i == 2) {
-                        batch_times.push_back(b_time);
+                size_t orig_insert_log_sz = tree.insert_log.size();
+                double mem_recorded = 0;
+
+                double batch_avg = time_loop(
+                    3, 1.0, 
+                    [&]() { 
+                        tree.insert_log.resize(orig_insert_log_sz); 
+                        tree.cache_valid = false;
+                    },
+                    [&]() { 
+                        tree.commit_inserts(batch);
+                    },
+                    [&]() {
                         size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
                                             tree.removed_ids.bucket_count() * sizeof(void*) + 
                                             tree.removed_ids.size() * sizeof(size_t);
-                        batch_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
+                        mem_recorded = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
                     }
-                    offset += current_batch_size;
-                }
-                ms += t.stop() * 1000.0;
-                if (i == 2) {
-                    size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
-                                        tree.removed_ids.bucket_count() * sizeof(void*) + 
-                                        tree.removed_ids.size() * sizeof(size_t);
-                    final_mem = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
-                }
+                );
+
+                tree.insert_log.resize(orig_insert_log_sz); 
+                tree.cache_valid = false;
+                tree.commit_inserts(batch);
+                tree.check_and_compact(p);
+
+                batch_times.push_back(batch_avg * 1000.0);
+                total_ms += batch_avg * 1000.0;
+                batch_mems.push_back(mem_recorded);
             }
             std::cout << "[per_batch_time]: ";
             for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
@@ -80,9 +86,9 @@ namespace RlogTest {
             std::cout << "[per_batch_mem]: ";
             for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[memory_MB]: " << final_mem << std::endl;
+            std::cout << "[memory_MB]: " << batch_mems.back() << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
-            std::cout << "[RlogTree]: batch insert time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
+            std::cout << "[RlogTree]: batch insert time (avg): " << (total_ms / 1000.0) << std::endl;
         }
     }
 
@@ -97,37 +103,45 @@ namespace RlogTest {
             double final_mem = 0;
             std::vector<double> batch_times;
             std::vector<double> batch_mems;
-            for (int i = 0; i < 3; i++) {
-                RlogTree tree(1);
-                tree.build_base(P_conv); // Build full tree first
+            double total_ms = 0;
+
+            RlogTree tree(1);
+            tree.build_base(P_conv); // Build full tree first
+
+            for (size_t offset = 0; offset < P_delete_conv.size(); offset += cur_batch_size) {
+                size_t current_batch_size = std::min(cur_batch_size, P_delete_conv.size() - offset);
+                std::vector<Value> batch(P_delete_conv.begin() + offset, P_delete_conv.begin() + offset + current_batch_size);
+                RlogBranch branch;
+                branch.remove_log = batch;
                 
-                parlay::internal::timer t;
-                size_t offset = 0;
-                while (offset < P_delete_conv.size()) {
-                    size_t current_batch_size = std::min(cur_batch_size, P_delete_conv.size() - offset);
-                    std::vector<Value> batch(P_delete_conv.begin() + offset, P_delete_conv.begin() + offset + current_batch_size);
-                    RlogBranch branch;
-                    branch.remove_log = batch;
-                    parlay::internal::timer batch_t;
-                    tree.merge(branch); // Mark as deleted
-                    tree.check_and_compact(p);
-                    double b_time = batch_t.stop() * 1000.0;
-                    if (i == 2) {
-                        batch_times.push_back(b_time);
+                size_t orig_remove_log_sz = tree.remove_log.size();
+                double mem_recorded = 0;
+
+                double batch_avg = time_loop(
+                    3, 1.0, 
+                    [&]() { 
+                        tree.remove_log.resize(orig_remove_log_sz); 
+                        tree.cache_valid = false;
+                    },
+                    [&]() { 
+                        tree.merge(branch); // Mark as deleted
+                    },
+                    [&]() {
                         size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
                                             tree.removed_ids.bucket_count() * sizeof(void*) + 
                                             tree.removed_ids.size() * sizeof(size_t);
-                        batch_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
+                        mem_recorded = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
                     }
-                    offset += current_batch_size;
-                }
-                ms += t.stop() * 1000.0;
-                if (i == 2) {
-                    size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
-                                        tree.removed_ids.bucket_count() * sizeof(void*) + 
-                                        tree.removed_ids.size() * sizeof(size_t);
-                    final_mem = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
-                }
+                );
+
+                tree.remove_log.resize(orig_remove_log_sz); 
+                tree.cache_valid = false;
+                tree.merge(branch);
+                tree.check_and_compact(p);
+
+                batch_times.push_back(batch_avg * 1000.0);
+                total_ms += batch_avg * 1000.0;
+                batch_mems.push_back(mem_recorded);
             }
             std::cout << "[per_batch_time]: ";
             for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
@@ -135,9 +149,9 @@ namespace RlogTest {
             std::cout << "[per_batch_mem]: ";
             for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[memory_MB]: " << final_mem << std::endl;
+            std::cout << "[memory_MB]: " << batch_mems.back() << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
-            std::cout << "[RlogTree]: batch delete time (avg): " << (ms / 3.0) / 1000.0 << std::endl;
+            std::cout << "[RlogTree]: batch delete time (avg): " << (total_ms / 1000.0) << std::endl;
         }
     }
 
