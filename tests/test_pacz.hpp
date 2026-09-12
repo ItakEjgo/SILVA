@@ -650,40 +650,44 @@ namespace PACZ{
 
 		for (auto ratio: batch_ratios){
 			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
-			std::vector<decltype(m1)> versions;
+				std::vector<decltype(m1)> versions;
+                versions.push_back(m1);
 
-			bool print_flag = true;
-	    	auto cpam_insert_avg = time_loop(
-		    	3, 1.0, [&]() {
-					versions.clear();
-					versions.push_back(m1);
-				},
-			    	[&]() {
-						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-							auto P2 = rand_p.substr(i, current_chunk);
-                           parlay::internal::timer chunk_t;
-							versions.push_back(PACZ::map_insert(P2, versions.back(), use_hilbert));
-                           double c_time = chunk_t.stop() * 1000.0;
-                           if (print_flag) {
-                               cout << "[per_chunk_time_val]: " << c_time << endl;
-                               cout << "[per_chunk_mem_val]: " << cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
-                           }
-						}
-			    	},
-	    	[&](){
-				if (print_flag){
-					cout << "# of points: " << versions.back().size() << endl;
-					double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-					cout << "[memory_MB]: " << mem_mb << endl;
-					print_flag = false;
-				}			
-			});
+                std::vector<double> chunk_times;
+                std::vector<double> chunk_mems;
+                double total_ms = 0;
+
+                for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+                    size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+                    auto P2 = rand_p.substr(i, current_chunk);
+
+                    decltype(m1) test_ver;
+                    
+                    auto chunk_avg = time_loop(
+                        3, 1.0, 
+                        [&]() { test_ver = decltype(m1)(); },
+                        [&]() { test_ver = PACZ::map_insert(P2, versions.back(), use_hilbert); },
+                        [&]() {}
+                    );
+
+                    chunk_times.push_back(chunk_avg * 1000.0);
+                    total_ms += chunk_avg * 1000.0;
+                    versions.push_back(test_ver);
+                    chunk_mems.push_back(cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
+                }
+
+                cout << "[per_chunk_time]: ";
+                for(size_t j = 0; j < chunk_times.size(); j++) cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[per_chunk_mem]: ";
+                for(size_t j = 0; j < chunk_mems.size(); j++) cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[memory_MB]: " << chunk_mems.back() << endl;
 
 			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 			else cout << "[Zorder-PACZ]: ";
-			cout << fixed << setprecision(6) << "batch insert time (avg): " << cpam_insert_avg << endl;
+		    	cout << "batch insert time (avg): " << (total_ms / 1000.0) << endl;
 		}
 
 	}
@@ -695,40 +699,43 @@ namespace PACZ{
 
 		for (auto ratio: batch_ratios){
 			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
-			std::vector<decltype(m1)> versions;
-			bool print_flag = true;
+				std::vector<decltype(m1)> versions;
+                versions.push_back(m1);
 
-	    	auto cpam_insert_avg = time_loop(
-		    	3, 1.0, [&]() {
-					versions.clear();
-					versions.push_back(m1);
-				},
-			    	[&]() {
-						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-							auto P2 = rand_p.substr(i, current_chunk);
-                           parlay::internal::timer chunk_t;
-							versions.push_back(PACZ::map_delete(P2, versions.back(), use_hilbert));
-                           double c_time = chunk_t.stop() * 1000.0;
-                           if (print_flag) {
-                               cout << "[per_chunk_time_val]: " << c_time << endl;
-                               cout << "[per_chunk_mem_val]: " << cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
-                           }
-						}
-			    	},
-	    	[&](){
-				if (print_flag){
-					cout << "# of points: " << versions.back().size() << endl;
-					double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-					cout << "[memory_MB]: " << mem_mb << endl;
-					print_flag = false;
-				}
-			} );
+                std::vector<double> chunk_times;
+                std::vector<double> chunk_mems;
+                double total_ms = 0;
+
+                for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+                    size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+                    auto P2 = rand_p.substr(i, current_chunk);
+
+                    decltype(m1) test_ver;
+                    
+                    auto chunk_avg = time_loop(
+                        3, 1.0, 
+                        [&]() { test_ver = decltype(m1)(); },
+                        [&]() { test_ver = PACZ::map_delete(P2, versions.back(), use_hilbert); },
+                        [&]() {}
+                    );
+
+                    chunk_times.push_back(chunk_avg * 1000.0);
+                    total_ms += chunk_avg * 1000.0;
+                    versions.push_back(test_ver);
+                    chunk_mems.push_back(cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
+                }
+
+                cout << "[per_chunk_time]: ";
+                for(size_t j = 0; j < chunk_times.size(); j++) cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[per_chunk_mem]: ";
+                for(size_t j = 0; j < chunk_mems.size(); j++) cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[memory_MB]: " << chunk_mems.back() << endl;
 
 			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
-			else cout << "[Zorder-PACZ]: ";
-			cout << fixed << setprecision(6) << "batch delete time (avg): " << cpam_insert_avg << endl;
+			    	cout << "batch delete time (avg): " << (total_ms / 1000.0) << endl;
 		}
 	}
 

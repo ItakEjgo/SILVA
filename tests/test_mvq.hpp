@@ -756,39 +756,42 @@ namespace ZDTest{
 
 		for (auto ratio: batch_ratios){
 			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
-			std::vector<shared_ptr<mvq::BaseNode>> versions;
+				std::vector<shared_ptr<mvq::BaseNode>> versions;
+                versions.push_back(zdtree.root);
 
-			bool print_flag = true;
-	    	auto zdtree_insert_avg = time_loop(
-		    	3, 1.0, [&]() {
-					versions.clear();
-					versions.push_back(zdtree.root);
-				},
-			    	[&]() {
-						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-							auto P2 = rand_p.substr(i, current_chunk);
-							auto P2_set = get_sorted_points(P2);
-                           parlay::internal::timer chunk_t;
-							versions.push_back(zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()));
-                           double c_time = chunk_t.stop() * 1000.0;
-                           if (print_flag) {
-                               cout << "[per_chunk_time_val]: " << c_time << endl;
-                               cout << "[per_chunk_mem_val]: " << mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
-                           }
-						}
-			    	},
-	    	[&](){
-				if (print_flag){
-					cout << "# of points: " << zdtree.collect_records(versions.back()).size() << endl;
-					double mem_mb = mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-					cout << "[memory_MB]: " << mem_mb << endl;
-					print_flag = false;
-				}
-			} );
+                std::vector<double> chunk_times;
+                std::vector<double> chunk_mems;
+                double total_ms = 0;
 
-			cout << "[batch_ratio]: " << ratio << endl;		
-	    	cout << fixed << setprecision(6) << "[zdtree]: batch insert time (avg): " << zdtree_insert_avg << endl;
+                for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+                    size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+                    auto P2 = rand_p.substr(i, current_chunk);
+                    auto P2_set = get_sorted_points(P2);
+
+                    shared_ptr<mvq::BaseNode> test_ver;
+                    
+                    auto chunk_avg = time_loop(
+                        3, 1.0, 
+                        [&]() { test_ver.reset(); },
+                        [&]() { test_ver = zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()); },
+                        [&]() {}
+                    );
+
+                    chunk_times.push_back(chunk_avg * 1000.0);
+                    total_ms += chunk_avg * 1000.0;
+                    versions.push_back(test_ver);
+                    chunk_mems.push_back(mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
+                }
+
+                cout << "[per_chunk_time]: ";
+                for(size_t j = 0; j < chunk_times.size(); j++) cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[per_chunk_mem]: ";
+                for(size_t j = 0; j < chunk_mems.size(); j++) cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[memory_MB]: " << chunk_mems.back() << endl;
+				cout << "[batch_ratio]: " << ratio << endl;		
+		    	cout << fixed << setprecision(6) << "[zdtree]: batch insert time (avg): " << (total_ms / 1000.0) << endl;
 		}
     }
 
@@ -804,43 +807,44 @@ namespace ZDTest{
 		
 		for (auto ratio: batch_ratios){
 			size_t chunk_size = std::max<size_t>(1, rand_p.size() * ratio);
-			std::vector<shared_ptr<mvq::BaseNode>> versions;
+				std::vector<shared_ptr<mvq::BaseNode>> versions;
+                versions.push_back(zdtree.root);
 
-			bool print_flag = true;
-	    	auto zdtree_delete_avg = time_loop(
-		    	3, 1.0, [&]() {
-					versions.clear();
-					versions.push_back(zdtree.root);
-				},
-			    	[&]() {
-						for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
-							size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
-							auto P2 = rand_p.substr(i, current_chunk);
-							auto P2_set = get_sorted_points(P2);
-                           parlay::internal::timer chunk_t;
-							versions.push_back(zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()));
-                           double c_time = chunk_t.stop() * 1000.0;
-                           if (print_flag) {
-                               cout << "[per_chunk_time_val]: " << c_time << endl;
-                               cout << "[per_chunk_mem_val]: " << mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0) << endl;
-                           }
-						}
-			    	},
-	    	[&](){
-				if (print_flag){
-					cout << "# of points: " << zdtree.collect_records(versions.back()).size() << endl;
-					double mem_mb = mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-					cout << "[memory_MB]: " << mem_mb << endl;
-					print_flag = false;
+                std::vector<double> chunk_times;
+                std::vector<double> chunk_mems;
+                double total_ms = 0;
+
+                for (size_t i = 0; i < rand_p.size(); i += chunk_size) {
+                    size_t current_chunk = std::min(chunk_size, rand_p.size() - i);
+                    auto P2 = rand_p.substr(i, current_chunk);
+                    auto P2_set = get_sorted_points(P2);
+
+                    shared_ptr<mvq::BaseNode> test_ver;
+                    
+                    auto chunk_avg = time_loop(
+                        3, 1.0, 
+                        [&]() { test_ver.reset(); },
+                        [&]() { test_ver = zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()); },
+                        [&]() {}
+                    );
+
+                    chunk_times.push_back(chunk_avg * 1000.0);
+                    total_ms += chunk_avg * 1000.0;
+                    versions.push_back(test_ver);
+                    chunk_mems.push_back(mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
+                }
+
+                cout << "[per_chunk_time]: ";
+                for(size_t j = 0; j < chunk_times.size(); j++) cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[per_chunk_mem]: ";
+                for(size_t j = 0; j < chunk_mems.size(); j++) cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+                cout << endl;
+                cout << "[memory_MB]: " << chunk_mems.back() << endl;
+				cout << "[batch_ratio]: " << ratio << endl;		
+			    	cout << fixed << setprecision(6) << "[zdtree]: batch delete time (avg): " << (total_ms / 1000.0) << endl;
 				}
-			} );
-			cout << "[batch_ratio]: " << ratio << endl;
-	    	cout << fixed << setprecision(6) << "[zdtree]: batch delete time (avg): " << zdtree_delete_avg << endl;
-		}
-    }
-
-
-	
+			}
 	//     mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	//     // auto P_set = get_sorted_address(P); // build original tree
 	//     auto P_set = get_sorted_points(P); // build original tree

@@ -16,7 +16,7 @@ class SilvaExperimentRunner:
         
         self.distributions = ["uniform", "varden"]
         self.sizes = ["1M", "10M", "20M", "30M", "40M", "50M"]
-        self.algorithms = ["mvq", "pacz", "boost", "rlog", "pkdtree", "pkdlog"]
+        self.algorithms = ["mvq", "pacz"]
         
         os.makedirs(self.results_dir, exist_ok=True)
 
@@ -174,7 +174,7 @@ class SilvaExperimentRunner:
             return
             
         import os
-        plot_dir = os.path.join(self.results_dir, "chunk_plots")
+        plot_dir = os.path.join(self.results_dir, "chunk_plots", f"ratio_{ratio}")
         os.makedirs(plot_dir, exist_ok=True)
         
         fig, ax1 = plt.subplots(figsize=(10, 6))
