@@ -136,24 +136,24 @@ class SilvaExperimentRunner:
                         
                         res_list = self.parse_batch_time(output, action_keyword)
 
-                        # Capture and plot per-chunk data!
-                        chunk_times_matches = re.findall(r'\[per_chunk_time\]:\s*(.*)', output)
-                        chunk_mems_matches = re.findall(r'\[per_chunk_mem\]:\s*(.*)', output)
-                        if not chunk_times_matches and '[per_chunk_time_val]:' in output:
-                            times_vals = re.findall(r'\[per_chunk_time_val\]:\s*([\d\.]+)', output)
-                            mems_vals = re.findall(r'\[per_chunk_mem_val\]:\s*([\d\.]+)', output)
-                            if times_vals: chunk_times_matches = [','.join(times_vals)]
-                            if mems_vals: chunk_mems_matches = [','.join(mems_vals)]
+                        # Capture and plot per-batch data!
+                        batch_times_matches = re.findall(r'\[per_batch_time\]:\s*(.*)', output)
+                        batch_mems_matches = re.findall(r'\[per_batch_mem\]:\s*(.*)', output)
+                        if not batch_times_matches and '[per_batch_time_val]:' in output:
+                            times_vals = re.findall(r'\[per_batch_time_val\]:\s*([\d\.]+)', output)
+                            mems_vals = re.findall(r'\[per_batch_mem_val\]:\s*([\d\.]+)', output)
+                            if times_vals: batch_times_matches = [','.join(times_vals)]
+                            if mems_vals: batch_mems_matches = [','.join(mems_vals)]
 
-                        if chunk_times_matches and chunk_mems_matches and res_list:
+                        if batch_times_matches and batch_mems_matches and res_list:
                             for idx, (batch_size, _, _) in enumerate(res_list):
-                                if idx < len(chunk_times_matches) and idx < len(chunk_mems_matches):
-                                    t_str = chunk_times_matches[idx].strip()
-                                    m_str = chunk_mems_matches[idx].strip()
+                                if idx < len(batch_times_matches) and idx < len(batch_mems_matches):
+                                    t_str = batch_times_matches[idx].strip()
+                                    m_str = batch_mems_matches[idx].strip()
                                     if t_str and m_str:
                                         t_arr = [float(x) for x in t_str.split(',') if x]
                                         m_arr = [float(x) for x in m_str.split(',') if x]
-                                        self.plot_single_batch(task_name, dist, size, algo, batch_size, t_arr, m_arr)
+                                        self.plot_single_ratio(task_name, dist, size, algo, batch_size, t_arr, m_arr)
 
                         if not res_list:
                             writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR", "N/A"])
@@ -167,7 +167,7 @@ class SilvaExperimentRunner:
         self.plot_results(csv_path, task_name)
         print(f"=== {task_name.upper()} Experiment Completed ===")
 
-    def plot_single_batch(self, task_name, dist, size, algo, ratio, times, mems):
+    def plot_single_ratio(self, task_name, dist, size, algo, ratio, times, mems):
         try:
             import matplotlib.pyplot as plt
         except ImportError:
@@ -197,7 +197,7 @@ class SilvaExperimentRunner:
         out_png = os.path.join(plot_dir, f'{task_name}_{algo}_ratio{ratio}_{dist}_{size}.png')
         plt.savefig(out_png)
         plt.close()
-        print(f"  -> Generated per-chunk plot for {algo} (Ratio={ratio})")
+        print(f"  -> Generated per-batch plot for {algo} (Ratio={ratio})")
 
     def plot_results(self, csv_path, task_name):
         try:

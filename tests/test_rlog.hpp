@@ -33,12 +33,12 @@ namespace RlogTest {
         auto P_conv = convert_points(P_base);
         auto P_update_conv = convert_points(P_update);
         for (double ratio : batch_ratios) {
-            size_t chunk_size = P_update_conv.size() * ratio;
-            if (chunk_size == 0) chunk_size = 1; // at least 1 point
+            size_t cur_batch_size = P_update_conv.size() * ratio;
+            if (cur_batch_size == 0) cur_batch_size = 1; // at least 1 point
             double ms = 0;
             double final_mem = 0;
-            std::vector<double> chunk_times;
-            std::vector<double> chunk_mems;
+            std::vector<double> batch_times;
+            std::vector<double> batch_mems;
             for (int i = 0; i < 3; i++) {
                 RlogTree tree(1);
                 tree.build_base(P_conv);
@@ -46,20 +46,20 @@ namespace RlogTest {
                 parlay::internal::timer t;
                 size_t offset = 0;
                 while (offset < P_update_conv.size()) {
-                    size_t current_chunk = std::min(chunk_size, P_update_conv.size() - offset);
-                    std::vector<Value> batch(P_update_conv.begin() + offset, P_update_conv.begin() + offset + current_chunk);
-                    parlay::internal::timer chunk_t;
+                    size_t current_batch_size = std::min(cur_batch_size, P_update_conv.size() - offset);
+                    std::vector<Value> batch(P_update_conv.begin() + offset, P_update_conv.begin() + offset + current_batch_size);
+                    parlay::internal::timer batch_t;
                     tree.commit_inserts(batch);
                     tree.check_and_compact(p);
-                    double c_time = chunk_t.stop() * 1000.0;
+                    double b_time = batch_t.stop() * 1000.0;
                     if (i == 2) {
-                        chunk_times.push_back(c_time);
+                        batch_times.push_back(b_time);
                         size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
                                             tree.removed_ids.bucket_count() * sizeof(void*) + 
                                             tree.removed_ids.size() * sizeof(size_t);
-                        chunk_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
+                        batch_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
                     }
-                    offset += current_chunk;
+                    offset += current_batch_size;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) {
@@ -69,11 +69,11 @@ namespace RlogTest {
                     final_mem = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
                 }
             }
-            std::cout << "[per_chunk_time]: ";
-            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << "[per_batch_time]: ";
+            for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[per_chunk_mem]: ";
-            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << "[per_batch_mem]: ";
+            for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
@@ -84,12 +84,12 @@ namespace RlogTest {
     void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
         for (double ratio : batch_ratios) {
-            size_t chunk_size = P_base.size() * ratio;
-            if (chunk_size == 0) chunk_size = 1;
+            size_t cur_batch_size = P_base.size() * ratio;
+            if (cur_batch_size == 0) cur_batch_size = 1;
             double ms = 0;
             double final_mem = 0;
-            std::vector<double> chunk_times;
-            std::vector<double> chunk_mems;
+            std::vector<double> batch_times;
+            std::vector<double> batch_mems;
             for (int i = 0; i < 3; i++) {
                 RlogTree tree(1);
                 tree.build_base(P_conv); // Build full tree first
@@ -97,22 +97,22 @@ namespace RlogTest {
                 parlay::internal::timer t;
                 size_t offset = 0;
                 while (offset < P_conv.size()) {
-                    size_t current_chunk = std::min(chunk_size, P_conv.size() - offset);
-                    std::vector<Value> batch(P_conv.begin() + offset, P_conv.begin() + offset + current_chunk);
+                    size_t current_batch_size = std::min(cur_batch_size, P_conv.size() - offset);
+                    std::vector<Value> batch(P_conv.begin() + offset, P_conv.begin() + offset + current_batch_size);
                     RlogBranch branch;
                     branch.remove_log = batch;
-                    parlay::internal::timer chunk_t;
+                    parlay::internal::timer batch_t;
                     tree.merge(branch); // Mark as deleted
                     tree.check_and_compact(p);
-                    double c_time = chunk_t.stop() * 1000.0;
+                    double b_time = batch_t.stop() * 1000.0;
                     if (i == 2) {
-                        chunk_times.push_back(c_time);
+                        batch_times.push_back(b_time);
                         size_t rlog_bytes = (tree.insert_log.capacity() + tree.remove_log.capacity()) * sizeof(Value) + 
                                             tree.removed_ids.bucket_count() * sizeof(void*) + 
                                             tree.removed_ids.size() * sizeof(size_t);
-                        chunk_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
+                        batch_mems.push_back((boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0));
                     }
-                    offset += current_chunk;
+                    offset += current_batch_size;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) {
@@ -122,11 +122,11 @@ namespace RlogTest {
                     final_mem = (boost_live_mem.load(std::memory_order_relaxed) + rlog_bytes) / (1024.0 * 1024.0);
                 }
             }
-            std::cout << "[per_chunk_time]: ";
-            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << "[per_batch_time]: ";
+            for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[per_chunk_mem]: ";
-            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << "[per_batch_mem]: ";
+            for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;

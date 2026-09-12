@@ -32,13 +32,13 @@ namespace BoostTest {
     void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios) {
         auto P_conv = convert_points(P_base);
         for (double ratio : batch_ratios) {
-            size_t chunk_size = P_update.size() * ratio;
-            if (chunk_size == 0) chunk_size = 1;
+            size_t cur_batch_size = P_update.size() * ratio;
+            if (cur_batch_size == 0) cur_batch_size = 1;
             
             double ms = 0;
             double final_mem = 0;
-            std::vector<double> chunk_times;
-            std::vector<double> chunk_mems;
+            std::vector<double> batch_times;
+            std::vector<double> batch_mems;
             for (int i = 0; i < 3; i++) {
                 BoostRunner runner;
                 runner.build_base(P_conv);
@@ -46,36 +46,36 @@ namespace BoostTest {
                 parlay::internal::timer t;
                 size_t offset = 0;
                 while (offset < P_update.size()) {
-                    size_t current_chunk = std::min(chunk_size, P_update.size() - offset);
-                    parlay::sequence<geobase::Point> adds(current_chunk);
-                    for(size_t j=0; j<current_chunk; j++) adds[j] = P_update[offset + j];
+                    size_t current_batch_size = std::min(cur_batch_size, P_update.size() - offset);
+                    parlay::sequence<geobase::Point> adds(current_batch_size);
+                    for(size_t j=0; j<current_batch_size; j++) adds[j] = P_update[offset + j];
                     parlay::sequence<geobase::Point> rems; // empty
-                    parlay::internal::timer chunk_t;
+                    parlay::internal::timer batch_t;
 
                     runner.commit(adds, rems);
 
-                    double c_time = chunk_t.stop() * 1000.0;
+                    double b_time = batch_t.stop() * 1000.0;
 
                     if (i == 2) {
 
-                        chunk_times.push_back(c_time);
+                        batch_times.push_back(b_time);
 
-                        chunk_mems.push_back(runner.memory_usage().first);
+                        batch_mems.push_back(runner.memory_usage().first);
 
                     }
 
-                    offset += current_chunk;
+                    offset += current_batch_size;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) {
                     final_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
                 }
             }
-            std::cout << "[per_chunk_time]: ";
-            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << "[per_batch_time]: ";
+            for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[per_chunk_mem]: ";
-            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << "[per_batch_mem]: ";
+            for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
@@ -86,13 +86,13 @@ namespace BoostTest {
     void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios) {
         auto P_conv = convert_points(P_base);
         for (double ratio : batch_ratios) {
-            size_t chunk_size = P_base.size() * ratio;
-            if (chunk_size == 0) chunk_size = 1;
+            size_t cur_batch_size = P_base.size() * ratio;
+            if (cur_batch_size == 0) cur_batch_size = 1;
             
             double ms = 0;
             double final_mem = 0;
-            std::vector<double> chunk_times;
-            std::vector<double> chunk_mems;
+            std::vector<double> batch_times;
+            std::vector<double> batch_mems;
             for (int i = 0; i < 3; i++) {
                 BoostRunner runner;
                 runner.build_base(P_conv);
@@ -100,36 +100,36 @@ namespace BoostTest {
                 parlay::internal::timer t;
                 size_t offset = 0;
                 while (offset < P_base.size()) {
-                    size_t current_chunk = std::min(chunk_size, P_base.size() - offset);
+                    size_t current_batch_size = std::min(cur_batch_size, P_base.size() - offset);
                     parlay::sequence<geobase::Point> adds; // empty
-                    parlay::sequence<geobase::Point> rems(current_chunk);
-                    for(size_t j=0; j<current_chunk; j++) rems[j] = P_base[offset + j];
-                    parlay::internal::timer chunk_t;
+                    parlay::sequence<geobase::Point> rems(current_batch_size);
+                    for(size_t j=0; j<current_batch_size; j++) rems[j] = P_base[offset + j];
+                    parlay::internal::timer batch_t;
 
                     runner.commit(adds, rems);
 
-                    double c_time = chunk_t.stop() * 1000.0;
+                    double b_time = batch_t.stop() * 1000.0;
 
                     if (i == 2) {
 
-                        chunk_times.push_back(c_time);
+                        batch_times.push_back(b_time);
 
-                        chunk_mems.push_back(runner.memory_usage().first);
+                        batch_mems.push_back(runner.memory_usage().first);
 
                     }
 
-                    offset += current_chunk;
+                    offset += current_batch_size;
                 }
                 ms += t.stop() * 1000.0;
                 if (i == 2) {
                     final_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
                 }
             }
-            std::cout << "[per_chunk_time]: ";
-            for(size_t j = 0; j < chunk_times.size(); j++) std::cout << chunk_times[j] << (j==chunk_times.size()-1 ? "" : ",");
+            std::cout << "[per_batch_time]: ";
+            for(size_t j = 0; j < batch_times.size(); j++) std::cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
             std::cout << std::endl;
-            std::cout << "[per_chunk_mem]: ";
-            for(size_t j = 0; j < chunk_mems.size(); j++) std::cout << chunk_mems[j] << (j==chunk_mems.size()-1 ? "" : ",");
+            std::cout << "[per_batch_mem]: ";
+            for(size_t j = 0; j < batch_mems.size(); j++) std::cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
             std::cout << std::endl;
             std::cout << "[memory_MB]: " << final_mem << std::endl;
             std::cout << "[batch_ratio]: " << ratio << std::endl;
