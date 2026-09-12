@@ -667,8 +667,7 @@ namespace PACZ{
                         3, 1.0, 
                         [&]() { test_ver = decltype(m1)(); },
                         [&]() { 
-                            auto P2_copy = parlay::to_sequence(P2);
-                            test_ver = PACZ::map_insert(P2_copy, versions.back(), use_hilbert); 
+                            test_ver = PACZ::map_insert(P2, versions.back(), use_hilbert); 
                         },
                         [&]() {}
                     );
@@ -719,8 +718,7 @@ namespace PACZ{
                         3, 1.0, 
                         [&]() { test_ver = decltype(m1)(); },
                         [&]() { 
-                            auto P2_copy = parlay::to_sequence(P2);
-                            test_ver = PACZ::map_delete(P2_copy, versions.back(), use_hilbert); 
+                            test_ver = PACZ::map_delete(P2, versions.back(), use_hilbert); 
                         },
                         [&]() {}
                     );
