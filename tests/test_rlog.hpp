@@ -31,7 +31,12 @@ namespace RlogTest {
 
     void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
-        auto P_update_conv = convert_points(P_update);
+        auto n = P_base.size();
+        auto rand_p = geobase::shuffle_point(P_update);
+        parlay::parallel_for (0, rand_p.size(), [&](int i){
+            rand_p[i].id = n + i;
+        });
+        auto P_update_conv = convert_points(rand_p);
         for (double ratio : batch_ratios) {
             size_t cur_batch_size = P_update_conv.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1; // at least 1 point
@@ -82,7 +87,9 @@ namespace RlogTest {
     }
 
     void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios, double p = 1.0) {
+        auto rand_p = geobase::shuffle_point(P_base);
         auto P_conv = convert_points(P_base);
+        auto P_delete_conv = convert_points(rand_p);
         for (double ratio : batch_ratios) {
             size_t cur_batch_size = P_base.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1;
@@ -96,9 +103,9 @@ namespace RlogTest {
                 
                 parlay::internal::timer t;
                 size_t offset = 0;
-                while (offset < P_conv.size()) {
-                    size_t current_batch_size = std::min(cur_batch_size, P_conv.size() - offset);
-                    std::vector<Value> batch(P_conv.begin() + offset, P_conv.begin() + offset + current_batch_size);
+                while (offset < P_delete_conv.size()) {
+                    size_t current_batch_size = std::min(cur_batch_size, P_delete_conv.size() - offset);
+                    std::vector<Value> batch(P_delete_conv.begin() + offset, P_delete_conv.begin() + offset + current_batch_size);
                     RlogBranch branch;
                     branch.remove_log = batch;
                     parlay::internal::timer batch_t;

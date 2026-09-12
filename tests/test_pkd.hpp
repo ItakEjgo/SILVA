@@ -31,8 +31,13 @@ namespace PKDTest {
 
     void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios) {
         auto P_conv = convert_points(P_base);
+        auto n = P_base.size();
+        auto rand_p = geobase::shuffle_point(P_update);
+        parlay::parallel_for (0, rand_p.size(), [&](int i){
+            rand_p[i].id = n + i;
+        });
         for (double ratio : batch_ratios) {
-            size_t cur_batch_size = P_update.size() * ratio;
+            size_t cur_batch_size = rand_p.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1;
             
             double ms = 0;
@@ -45,10 +50,10 @@ namespace PKDTest {
                 
                 parlay::internal::timer t;
                 size_t offset = 0;
-                while (offset < P_update.size()) {
-                    size_t current_batch_size = std::min(cur_batch_size, P_update.size() - offset);
+                while (offset < rand_p.size()) {
+                    size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - offset);
                     parlay::sequence<geobase::Point> adds(current_batch_size);
-                    for(size_t j=0; j<current_batch_size; j++) adds[j] = P_update[offset + j];
+                    for(size_t j=0; j<current_batch_size; j++) adds[j] = rand_p[offset + j];
                     parlay::sequence<geobase::Point> rems; // empty
                     parlay::internal::timer batch_t;
 
@@ -83,6 +88,7 @@ namespace PKDTest {
 
     void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios) {
         auto P_conv = convert_points(P_base);
+        auto rand_p = geobase::shuffle_point(P_base);
         for (double ratio : batch_ratios) {
             size_t cur_batch_size = P_base.size() * ratio;
             if (cur_batch_size == 0) cur_batch_size = 1;
@@ -101,7 +107,7 @@ namespace PKDTest {
                     size_t current_batch_size = std::min(cur_batch_size, P_base.size() - offset);
                     parlay::sequence<geobase::Point> adds; // empty
                     parlay::sequence<geobase::Point> rems(current_batch_size);
-                    for(size_t j=0; j<current_batch_size; j++) rems[j] = P_base[offset + j];
+                    for(size_t j=0; j<current_batch_size; j++) rems[j] = rand_p[offset + j];
                     parlay::internal::timer batch_t;
 
                     runner.commit(adds, rems);
