@@ -19,12 +19,20 @@ namespace PKDTest {
     void build_test(PT P) {
         auto P_conv = convert_points(P);
         double final_mem = 0;
-        auto run_f = [&]() {
-            PKDRunner runner;
-            runner.build_base(P_conv);
-            final_mem = runner.memory_usage().first;
-        };
-        double ms = time_loop(5, 1.0, [](){}, run_f, [](){}) * 1000.0;
+        PKDRunner* runner = nullptr;
+        double ms = time_loop(5, 1.0, 
+            [&](){ 
+                if (runner) delete runner;
+                runner = new PKDRunner();
+            }, 
+            [&]() {
+                runner->build_base(P_conv);
+            }, 
+            [&](){
+                final_mem = runner->memory_usage().first;
+            }
+        ) * 1000.0;
+        delete runner;
         std::cout << "[memory_MB]: " << final_mem << std::endl;
         std::cout << "[PkdTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }

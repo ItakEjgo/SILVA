@@ -19,12 +19,20 @@ namespace BoostTest {
     void build_test(PT P) {
         auto P_conv = convert_points(P);
         double final_mem = 0;
-        auto run_f = [&]() {
-            BoostRunner runner;
-            runner.build_base(P_conv);
-            final_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-        };
-        double ms = time_loop(5, 1.0, [](){}, run_f, [](){}) * 1000.0;
+        BoostRunner* runner = nullptr;
+        double ms = time_loop(5, 1.0, 
+            [&](){ 
+                if (runner) delete runner;
+                runner = new BoostRunner();
+            }, 
+            [&]() {
+                runner->build_base(P_conv);
+            }, 
+            [&](){
+                final_mem = boost_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+            }
+        ) * 1000.0;
+        delete runner;
         std::cout << "[memory_MB]: " << final_mem << std::endl;
         std::cout << "[BoostRtree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
