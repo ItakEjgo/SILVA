@@ -49,7 +49,7 @@ void ParallelKDtree<point>::range_query_recursive_parallel(node* T, simple_node*
         assert(ST->size == Out.size());
         leaf* TL = static_cast<leaf*>(T);
         int s = 0;
-        for (int i = 0; i < TL->size; i++) {
+        for (size_t i = 0; i < TL->size; i++) {
             if (within_box(TL->pts[(!TL->is_dummy) * i], queryBox)) {
                 Out[s++] = TL->pts[(!TL->is_dummy) * i];
             }
@@ -75,11 +75,11 @@ void ParallelKDtree<point>::range_query_recursive_serial(node* T, StoreType Out,
         leaf* TL = static_cast<leaf*>(T);
         if (TL->is_dummy) {
             if (within_box(TL->pts[0], queryBox)) {
-                for (int i = 0; i < TL->size; i++)
+                for (size_t i = 0; i < TL->size; i++)
                     Out[s++] = TL->pts[0];
             }
         } else {
-            for (int i = 0; i < TL->size; i++)
+            for (size_t i = 0; i < TL->size; i++)
                 if (within_box(TL->pts[i], queryBox)) {
                     Out[s++] = TL->pts[i];
                 }

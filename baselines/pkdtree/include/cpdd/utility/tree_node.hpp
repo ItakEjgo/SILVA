@@ -33,7 +33,7 @@ struct ParallelKDtree<point>::leaf : node {
     leaf() : node{true, static_cast<size_t>(0)}, is_dummy(false){};
     leaf(slice In) :
         node{true, static_cast<size_t>(In.size())}, is_dummy(false), pts(points::uninitialized(LEAVE_WRAP)) {
-        for (int i = 0; i < In.size(); i++) {
+        for (size_t i = 0; i < In.size(); i++) {
             pts[i] = In[i];
         }
     }
