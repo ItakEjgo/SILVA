@@ -6,3 +6,4 @@ AGENTS.md
 .omp/
 results_experiments/
 .cache/
+verify_bench
