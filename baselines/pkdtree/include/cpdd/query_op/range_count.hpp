@@ -19,7 +19,7 @@ size_t ParallelKDtree<point>::range_count_rectangle(node* T, const box& queryBox
     //     visLeafNum++;
     //     size_t cnt = 0;
     //     leaf* TL = static_cast<leaf*>(T);
-    //     for (int i = 0; i < TL->size; i++) {
+    //     for (size_t i = 0; i < TL->size; i++) {
     //         if (within_box(TL->pts[(!T->is_dummy) * i], queryBox)) {
     //             cnt++;
     //         }
@@ -57,7 +57,7 @@ size_t ParallelKDtree<point>::range_count_rectangle(node* T, const box& queryBox
                 cnt = TL->size;
             }
         } else {
-            for (int i = 0; i < TL->size; i++) {
+            for (size_t i = 0; i < TL->size; i++) {
                 if (within_box(TL->pts[i], queryBox)) {
                     cnt++;
                 }
@@ -109,7 +109,7 @@ size_t ParallelKDtree<point>::range_count_radius(node* T, const circle& cl, cons
     if (T->is_leaf) {
         size_t cnt = 0;
         leaf* TL = static_cast<leaf*>(T);
-        for (int i = 0; i < TL->size; i++) {
+        for (size_t i = 0; i < TL->size; i++) {
             if (within_circle(TL->pts[(!TL->is_dummy) * i], cl)) {
                 cnt++;
             }
@@ -141,7 +141,7 @@ ParallelKDtree<point>::simple_node* ParallelKDtree<point>::range_count_save_path
     if (T->is_leaf) {
         size_t cnt = 0;
         leaf* TL = static_cast<leaf*>(T);
-        for (int i = 0; i < TL->size; i++) {
+        for (size_t i = 0; i < TL->size; i++) {
             if (within_box(TL->pts[(!TL->is_dummy) * i], queryBox)) {
                 cnt++;
             }

@@ -177,7 +177,7 @@ typename ParallelKDtree<point>::node_box ParallelKDtree<point>::batchDelete_recu
         }
 
         auto it = TL->pts.begin(), end = TL->pts.begin() + TL->size;
-        for (int i = 0; i < In.size(); i++) {
+        for (size_t i = 0; i < In.size(); i++) {
             it = std::ranges::find(TL->pts.begin(), end, In[i]);
             assert(it != end);
             std::ranges::iter_swap(it, --end);
@@ -243,7 +243,7 @@ typename ParallelKDtree<point>::node_box ParallelKDtree<point>::batchDelete_recu
         0, IT.tagsNum,
         [&](size_t i) {
             size_t start = 0;
-            for (int j = 0; j < i; j++) {
+            for (size_t j = 0; j < i; j++) {
                 start += IT.sums[j];
             }
 
@@ -290,7 +290,7 @@ typename ParallelKDtree<point>::node_box ParallelKDtree<point>::batchDelete_recu
         }
 
         auto it = TL->pts.begin(), end = TL->pts.begin() + TL->size;
-        for (int i = 0; TL->size && i < In.size(); i++) {
+        for (size_t i = 0; TL->size && i < In.size(); i++) {
             it = std::ranges::find(TL->pts.begin(), end, In[i]);
             if (it != end) {  // NOTE: find a point
                 std::ranges::iter_swap(it, --end);
@@ -343,7 +343,7 @@ typename ParallelKDtree<point>::node_box ParallelKDtree<point>::batchDelete_recu
         [&](size_t i) {
             // assert( IT.sums_tree[IT.rev_tag[i]] == IT.sums[i] );
             size_t start = 0;
-            for (int j = 0; j < i; j++) {
+            for (size_t j = 0; j < i; j++) {
                 start += IT.sums[j];
             }
 
