@@ -64,8 +64,8 @@ namespace PKDTest {
                 // We MUST backup and rebuild PKDTree for clearf
                 parlay::sequence<PKDRunner::point_t> backup_pts;
                 if (runner.pkd.get_root()) {
-                    backup_pts = parlay::sequence<PKDRunner::point_t>::uninitialized(runner.pkd.get_root()->size);
-                    runner.pkd.flatten(runner.pkd.get_root(), parlay::make_slice(backup_pts));
+                    backup_pts = parlay::sequence<PKDRunner::point_t>::uninitialized(runner.pkd.get_size());
+                    runner.pkd.flatten(parlay::make_slice(backup_pts));
                 }
                 double mem_recorded = 0;
 
@@ -73,7 +73,7 @@ namespace PKDTest {
                     3, 1.0, 
                     [&]() { 
                         runner.pkd.delete_tree();
-                        runner.pkd.build(parlay::make_slice(backup_pts), 2);
+                        runner.pkd.build(parlay::make_slice(backup_pts));
                     },
                     [&]() { 
                         runner.commit(adds, rems);
@@ -84,7 +84,7 @@ namespace PKDTest {
                 );
 
                 runner.pkd.delete_tree();
-                runner.pkd.build(parlay::make_slice(backup_pts), 2);
+                runner.pkd.build(parlay::make_slice(backup_pts));
                 runner.commit(adds, rems);
 
                 batch_times.push_back(batch_avg * 1000.0);

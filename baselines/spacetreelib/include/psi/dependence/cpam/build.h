@@ -1,0 +1,203 @@
+#pragma once
+#include <parlay/internal/get_time.h>
+
+#include "cpam_sample_sort.h"
+#include "get_time.h"
+#include "parlay/internal/integer_sort.h"
+#include "parlay/parallel.h"
+#include "parlay/primitives.h"
+
+namespace psi
+{
+namespace cpam
+{
+
+template <class Entry>
+struct build {
+	using K = typename Entry::key_t;
+	using V = typename Entry::val_t;
+	using et_type = typename Entry::entry_t;
+	using filling_curve_t = typename Entry::filling_curve_t;
+	using key_entry_pointer = typename Entry::key_entry_pointer;
+
+	constexpr static auto less = [](et_type const &a, et_type const &b) {
+		return Entry::comp(Entry::get_key(a), Entry::get_key(b));
+	};
+
+	// sorts a sequence, then removes all but first element with equal keys
+	// the sort is not necessarily stable, so any element could be kept
+	template <class Seq, typename output_type = key_entry_pointer>
+	// static parlay::sequence<et_type> sort_remove_duplicates(
+	static auto sort_remove_duplicates(Seq const &A)
+	{ // ?? const
+		// if (A.size() == 0) return
+		// parlay::sequence<key_entry_pointer>(0);
+
+		// parlay::internal::timer t("");
+		// assert(parlay::all_of(
+		//     A, [&](auto const& p) { return std::get<0>(p).first == 0;
+		//     }));
+		// parlay::parallel_for(0, A.size(), [&](size_t i) {
+		//   A[i].aug.code = filling_curve_t::encode(A[i]);
+		// });
+		// auto B = parlay::internal::sample_sort(
+		//     parlay::make_slice(A.begin(), A.end()), less);
+		auto B = parlay::internal::cpam::cpam_sample_sort<
+			filling_curve_t, output_type>(
+			parlay::make_slice(A.begin(), A.end()),
+			[&](auto const &a, auto const &b) {
+				if constexpr (std::same_as<
+						      output_type,
+						      std::pair<K,
+								et_type *>>) {
+					// NOTE: using pair when build or insert
+					return a.first < b.first;
+				} else if constexpr (std::same_as<output_type,
+								  K>) {
+					return a < b;
+				} else if constexpr (std::same_as<output_type,
+								  et_type>) {
+					return less(a, b);
+				} else {
+					static_assert(false,
+						      "non_support_type");
+				}
+			});
+		// auto B =
+		// parlay::internal::cpam::cpam_sample_sort<filling_curve_t>(
+		//     parlay::make_slice(A.begin(), A.end()), less);
+		// auto B = parlay::internal::integer_sort(
+		//     parlay::make_slice(A.begin(), A.end()),
+		//     [](auto const& k) { return Entry::get_key(k).code; });
+		// t.next("sort");
+
+		// auto fl = parlay::delayed_seq<bool>(
+		//     B.size(), [&](size_t i) { return (i == 0) || less(B[i -
+		//     1], B[i]);
+		//     });
+		//
+		// auto o = parlay::pack(B, fl);
+		// t.next("pack");
+		// return o;
+		return B;
+	}
+
+	template <class Seq, class Reduce>
+	static parlay::sequence<et_type>
+	sort_reduce_duplicates(Seq const &A, Reduce const &reduce)
+	{
+		using E = typename Seq::value_type;
+		using vi_type = typename E::second_type;
+
+		timer t("sort_reduce_duplicates", false);
+		size_t n = A.size();
+		if (n == 0)
+			return parlay::sequence<et_type>(0);
+		auto lessE = [](E const &a, E const &b) {
+			return Entry::comp(a.first, b.first);
+		};
+
+		auto B = parlay::internal::sample_sort(parlay::make_slice(A),
+						       lessE);
+		t.next("sort");
+
+		// determines the index of start of each block of equal keys
+		// and copies values into vals
+		parlay::sequence<bool> fl(n);
+		auto vals = parlay::tabulate(n, [&](size_t i) -> vi_type {
+			fl[i] = (i == 0) || lessE(B[i - 1], B[i]);
+			return B[i].second;
+		});
+		t.next("copy, set flags");
+
+		auto I = parlay::pack_index<node_size_t>(fl);
+		t.next("pack index");
+
+		// combines over each block of equal keys using function reduce
+		auto a = parlay::tabulate(I.size(), [&](size_t i) -> et_type {
+			size_t start = I[i];
+			size_t end = (i == I.size() - 1) ? n : I[i + 1];
+			return et_type(B[start].first,
+				       reduce(vals.cut(start, end)));
+		});
+		t.next("reductions");
+		// tabulate set over all entries of i
+		return a;
+	}
+
+	template <class Seq, class Reduce>
+	static parlay::sequence<et_type>
+	sort_reduce_duplicates_a(Seq const &A, Reduce const &reduce)
+	{
+		using E = typename Seq::value_type;
+		using vi_type = typename E::second_type;
+
+		timer t("sort_reduce_duplicates", false);
+		size_t n = A.size();
+		if (n == 0)
+			return parlay::sequence<et_type>(0);
+		auto lessE = [](E const &a, E const &b) {
+			return Entry::comp(a.first, b.first);
+		};
+
+		auto B = parlay::internal::sample_sort(parlay::make_slice(A),
+						       lessE);
+		t.next("sort");
+
+		// determines the index of start of each block of equal keys
+		// and copies values into vals
+		parlay::sequence<bool> fl(n); // ?? should it be unitialized
+		auto vals = parlay::tabulate(n, [&](size_t i) -> vi_type {
+			fl[i] = (i == 0) || lessE(B[i - 1], B[i]);
+			return B[i].second;
+		});
+		t.next("copy, set flags");
+
+		auto I = parlay::pack_index<node_size_t>(fl);
+		t.next("pack index");
+
+		// combines over each block of equal keys using function reduce
+		auto a = parlay::tabulate(I.size(), [&](size_t i) -> et_type {
+			size_t start = I[i];
+			size_t end = (i == I.size() - 1) ? n : I[i + 1];
+			return et_type(B[start].first,
+				       reduce(vals.cut(start, end)));
+		});
+		t.next("reductions");
+		// tabulate set over all entries of i
+		return a;
+	}
+
+	template <class Seq, class Bin_Op>
+	static parlay::sequence<et_type> sort_combine_duplicates(Seq const &A,
+								 Bin_Op &f)
+	{
+		auto mon = parlay::make_monoid(f, V());
+		auto reduce_op =
+			[&](parlay::slice<V *, V *> S) { // ?? should it be &
+				return parlay::reduce(S, mon);
+			};
+		return sort_reduce_duplicates_a(A, reduce_op);
+	}
+
+	template <class Seq, class Bin_Op>
+	static parlay::slice<et_type *, et_type *>
+	sort_combine_duplicates_inplace(Seq const &A, Bin_Op &f)
+	{
+		auto less = [&](et_type a, et_type b) {
+			return Entry::comp(a.first, b.first);
+		};
+		parlay::internal::quicksort(A.begin(), A.size(), less);
+		size_t j = 0;
+		for (size_t i = 1; i < A.size(); i++) {
+			if (less(A[j], A[i]))
+				A[++j] = A[i];
+			else
+				A[j].second = f(A[j].second, A[i].second);
+		}
+		return A.cut(0, j + 1);
+	}
+};
+
+} // namespace cpam
+} // namespace psi

@@ -8,7 +8,8 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/geometries/box.hpp>
-#include <cpdd/cpdd.h>
+#include <psi/kd_tree.h>
+#include <psi/dependence/splitter.h>
 
 namespace bg = boost::geometry;
 typedef bg::model::point<double, 2, bg::cs::cartesian> BoostPoint;
@@ -16,21 +17,30 @@ typedef std::pair<BoostPoint, size_t> Value;
 
 namespace PKDLog {
 
-using point_t = cpdd::PointID<double, 2>;
-using tree_t = cpdd::ParallelKDtree<point_t>;
+struct pkd_aug_id {
+    using id_type = int;
+    id_type id;
 
-inline size_t calculate_tree_memory(tree_t::node* T) {
+    bool operator<(pkd_aug_id const &rhs) const { return id < rhs.id; }
+    bool operator==(pkd_aug_id const &rhs) const { return id == rhs.id; }
+};
+
+using point_t = psi::aug_point<double, 2, pkd_aug_id>;
+using SplitRule = psi::orthogonal_split_rule<psi::max_stretch_dim<point_t>, psi::object_median<point_t>>;
+using tree_t = psi::kd_tree<psi::tree_traits<point_t, SplitRule>>;
+
+inline size_t calculate_tree_memory(auto T) {
     if (T == nullptr) return 0;
     if (T->is_leaf) {
-        return sizeof(tree_t::leaf) + tree_t::LEAVE_WRAP * sizeof(point_t);
+        return sizeof(typename tree_t::leaf_type) + tree_t::traits_type::leaf_capacity * sizeof(point_t);
     }
-    tree_t::interior* TI = static_cast<tree_t::interior*>(T);
+    auto TI = static_cast<typename tree_t::interior_type*>(T);
     size_t l = 0, r = 0;
-    parlay::par_do_if(TI->size > 1000,
+    parlay::par_do_if(T->size > 1000,
         [&]() { l = calculate_tree_memory(TI->left); },
         [&]() { r = calculate_tree_memory(TI->right); }
     );
-    return sizeof(tree_t::interior) + l + r;
+    return sizeof(typename tree_t::interior_type) + l + r;
 }
 
 struct VersionNode {
@@ -89,12 +99,12 @@ inline std::shared_ptr<VersionNode> map_init(const std::vector<Value>& P_base) {
     
     parlay::sequence<point_t> P(P_base.size());
     parlay::parallel_for(0, P_base.size(), [&](size_t i) {
-        std::array<double, 2> coords = {P_base[i].first.get<0>(), P_base[i].first.get<1>()};
-        P[i] = point_t(coords, P_base[i].second);
+        P[i][0] = P_base[i].first.get<0>();
+        P[i][1] = P_base[i].first.get<1>();
+        P[i].aug.id = P_base[i].second;
     });
-    
     auto raw_tree = new tree_t();
-    raw_tree->build(parlay::make_slice(P), 2);
+    raw_tree->build(parlay::make_slice(P));
     size_t tree_mem = calculate_tree_memory(raw_tree->get_root());
     cpam::cpam_live_mem.fetch_add(tree_mem, std::memory_order_relaxed);
     std::shared_ptr<tree_t> tree(raw_tree, [tree_mem](tree_t* p) {
@@ -120,30 +130,27 @@ inline void check_compact(std::shared_ptr<VersionNode> node, double p) {
         parlay::sequence<point_t> tree_pts;
         if (tree_sz > 0) {
             tree_pts = parlay::sequence<point_t>::uninitialized(tree_sz);
-            base->flatten(base->get_root(), parlay::make_slice(tree_pts));
+            base->flatten(parlay::make_slice(tree_pts));
         }
 
         auto is_alive = [&](const point_t& pt) { 
-            return removed_ids.find(pt.id) == removed_ids.end(); 
+            return removed_ids.find(pt.aug.id) == removed_ids.end(); 
         };
         auto live_tree_pts = parlay::filter(tree_pts, is_alive);
         
         parlay::sequence<point_t> log_pts(pending_inserts.size());
-        parlay::parallel_for(0, pending_inserts.size(), [&](size_t i) {
-            std::array<double, 2> coords = {pending_inserts[i].first.get<0>(), pending_inserts[i].first.get<1>()};
-            log_pts[i] = point_t(coords, pending_inserts[i].second);
-        });
 
         parlay::sequence<point_t> next_pts = parlay::sequence<point_t>::uninitialized(live_tree_pts.size() + log_pts.size());
-        parlay::parallel_for(0, live_tree_pts.size(), [&](size_t i) {
-            next_pts[i] = live_tree_pts[i];
+        parlay::parallel_for(0, pending_inserts.size(), [&](size_t i) {
+            log_pts[i][0] = pending_inserts[i].first.get<0>();
+            log_pts[i][1] = pending_inserts[i].first.get<1>();
+            log_pts[i].aug.id = pending_inserts[i].second;
         });
         parlay::parallel_for(0, log_pts.size(), [&](size_t i) {
             next_pts[live_tree_pts.size() + i] = log_pts[i];
         });
-
         auto raw_tree = new tree_t();
-        raw_tree->build(parlay::make_slice(next_pts), 2);
+        raw_tree->build(parlay::make_slice(next_pts));
         size_t tree_mem = calculate_tree_memory(raw_tree->get_root());
         cpam::cpam_live_mem.fetch_add(tree_mem, std::memory_order_relaxed);
         std::shared_ptr<tree_t> new_tree(raw_tree, [tree_mem](tree_t* p) {
@@ -194,26 +201,27 @@ inline std::vector<Value> range_report(std::shared_ptr<VersionNode> node, const 
     
     std::vector<Value> result;
     auto is_alive = [&](const point_t& pt) {
-        return removed_ids.find(pt.id) == removed_ids.end();
+        return removed_ids.find(pt.aug.id) == removed_ids.end();
     };
 
-    if (base && base->get_root() != nullptr) {
-        tree_t::box queryBox;
-        queryBox.first.pnt[0] = q_copy.first.x;
-        queryBox.first.pnt[1] = q_copy.first.y;
-        queryBox.second.pnt[0] = q_copy.second.x;
-        queryBox.second.pnt[1] = q_copy.second.y;
+    if (base && !base->empty()) {
+        tree_t::box_type queryBox;
+        queryBox.first[0] = q_copy.first.x;
+        queryBox.first[1] = q_copy.first.y;
+        queryBox.second[0] = q_copy.second.x;
+        queryBox.second[1] = q_copy.second.y;
         
-        size_t tree_sz = base->get_root()->size;
+        size_t tree_sz = base->get_size();
         
         parlay::sequence<point_t> temp_out = parlay::sequence<point_t>::uninitialized(tree_sz);
         
-        size_t tree_cnt = base->range_query_serial(queryBox, parlay::make_slice(temp_out));
+        auto res = base->range_query(queryBox, parlay::make_slice(temp_out));
+        size_t tree_cnt = res.first;
         
         for (size_t i = 0; i < tree_cnt; i++) {
             auto& p = temp_out[i];
             if (is_alive(p)) {
-                result.push_back({BoostPoint(p.pnt[0], p.pnt[1]), p.id});
+                result.push_back({BoostPoint(p[0], p[1]), p.aug.id});
             }
         }
     }
@@ -254,22 +262,26 @@ inline std::vector<Value> knn_report(std::shared_ptr<VersionNode> node, const ge
         }
     }
     
-    if (base && base->get_root() != nullptr) {
-        point_t q_pt(std::array<double, 2>{q.x, q.y}, 0);
-        tree_t::box nodeBox = base->get_root_box();
-        using nn_pair = std::pair<point_t, double>;
-        std::vector<nn_pair> out_buffer(k);
+    if (base && !base->empty()) {
+        point_t q_pt;
+        q_pt[0] = q.x;
+        q_pt[1] = q.y;
+        q_pt.aug.id = -1;
+
+        using dis_type = typename point_t::dis_type;
+        using nn_pair = std::pair<point_t, dis_type>;
+
+        std::vector<nn_pair> out_buffer(k, nn_pair(q_pt, 0));
         parlay::slice<nn_pair*, nn_pair*> out_slice(out_buffer.data(), out_buffer.data() + k);
-        cpdd::kBoundedQueue<point_t, nn_pair> bq(out_slice);
+        psi::bounded_queue<point_t, nn_pair> bq(out_slice);
         
-        size_t visNodeNum = 0;
         auto is_alive = [&](const point_t& pt) {
-            return removed_ids.find(pt.id) == removed_ids.end();
+            return removed_ids.find(pt.aug.id) == removed_ids.end();
         };
-        base->k_nearest(base->get_root(), q_pt, k, bq, nodeBox, visNodeNum, is_alive);
-        for (size_t i = 0; i < bq.m_count; i++) {
+        base->knn(q_pt, bq, is_alive);
+        for (size_t i = 0; i < bq.size(); i++) {
             auto item = out_buffer[i];
-            Value v = {BoostPoint(item.first.pnt[0], item.first.pnt[1]), item.first.id};
+            Value v = {BoostPoint(item.first[0], item.first[1]), item.first.aug.id};
             double dist = item.second;
             if (max_heap.size() < k) max_heap.push({dist, v});
             else if (dist < max_heap.top().first || (dist == max_heap.top().first && v.second > max_heap.top().second.second)) {
