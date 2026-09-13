@@ -13,8 +13,8 @@ dim = 2
 varden_dir = "dataset/varden"
 
 print("Generating Varden Datasets...")
-dbscan_path = "baselines/pkdtree/script/DBSCAN"
-wash_script = "baselines/pkdtree/script/wash_varden.py"
+dbscan_path = "baselines/spacetreelib/script/DBSCAN"
+wash_script = "baselines/spacetreelib/script/wash_varden.py"
 
 for size_num, size_name in sizes:
     outfile = f"{varden_dir}/{size_name}_2.in"

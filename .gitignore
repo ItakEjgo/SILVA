@@ -29,13 +29,13 @@ CMakeFiles/
 *.log
 
 # Specific large binaries from subdirectories
-baselines/pkdtree/tests/zdtree/octTree/neighbors
+baselines/spacetreelib/tests/zdtree/octTree/neighbors
 
 # Data directories
-baselines/pkdtree/script/data/
-baselines/pkdtree/script/plots/
-baselines/pkdtree/script/backup_data/
+baselines/spacetreelib/script/data/
+baselines/spacetreelib/script/plots/
+baselines/spacetreelib/script/backup_data/
 verification_results/
-baselines/pkdtree/benchmark/**/*.out
-baselines/pkdtree/script/*.out
-baselines/pkdtree/script/*.csv
+baselines/spacetreelib/benchmark/**/*.out
+baselines/spacetreelib/script/*.out
+baselines/spacetreelib/script/*.csv

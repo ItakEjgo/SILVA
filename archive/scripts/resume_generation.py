@@ -17,7 +17,7 @@ varden_dir = "dataset/varden"
 
 # 1. Generate Uniform
 print("Resuming Uniform Datasets...")
-generator_path = "baselines/pkdtree/build/data_generator"
+generator_path = "baselines/spacetreelib/build/data_generator"
 for size_num, size_name in sizes:
     outfile = f"{uniform_dir}/{size_name}_2.in"
     if os.path.exists(outfile):
@@ -38,8 +38,8 @@ for size_num, size_name in sizes:
 
 # 2. Generate Varden
 print("Generating Varden Datasets...")
-dbscan_path = "baselines/pkdtree/script/DBSCAN"
-wash_script = "baselines/pkdtree/script/wash_varden.py"
+dbscan_path = "baselines/spacetreelib/script/DBSCAN"
+wash_script = "baselines/spacetreelib/script/wash_varden.py"
 varDensity = "5"
 
 for size_num, size_name in sizes:
