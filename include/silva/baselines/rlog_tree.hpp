@@ -24,7 +24,13 @@ inline std::atomic<size_t> boost_live_mem(0);
 template <typename T>
 class TrackingAllocator {
 public:
-    typedef T value_type;
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using reference = T&;
+    using const_reference = const T&;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
     TrackingAllocator() = default;
     template <typename U> TrackingAllocator(const TrackingAllocator<U>&) {}
     template<class U> struct rebind { typedef TrackingAllocator<U> other; };
