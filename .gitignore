@@ -1,4 +1,5 @@
 build/
+silva_py
 dataset
 __pycache__/
 .tmp_experiments/
@@ -7,6 +8,7 @@ AGENTS.md
 results_experiments/
 .cache/
 verify_bench
+synthetic_dataset
 
 # CMake & Compiled Binaries
 *.o
