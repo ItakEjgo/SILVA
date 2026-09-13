@@ -20,7 +20,7 @@ class SilvaExperimentRunner:
         
         os.makedirs(self.results_dir, exist_ok=True)
 
-    def run_command(self, cmd, timeout=300):
+    def run_command(self, cmd, timeout=1800):
         # Apply thread restrictions
         env = os.environ.copy()
         if self.threads is not None:
@@ -95,7 +95,12 @@ class SilvaExperimentRunner:
                     print(f"\n--- Testing Dataset: {dist} - {size} ---")
                     for algo in self.algorithms:
                         cmd = [self.binary_path, "-t", "build", "-a", algo, "-i", dataset_base]
-                        output = self.run_command(cmd, timeout=300) # Increased timeout for single core 50M
+                        output = self.run_command(cmd, timeout=300)
+                        audit_log_path = os.path.join(self.results_dir, f"audit_log_build{suffix}_{timestamp}.txt")
+                        with open(audit_log_path, 'a') as af:
+                            af.write(f"\n{'='*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CMD: {' '.join(cmd)}\n{'='*60}\n")
+                            if output: af.write(output + "\n")
+                         # Increased timeout for single core 50M
                         
                         time_s = self.parse_time(output, "build")
                         mem_mb = self.parse_memory(output)
@@ -104,7 +109,96 @@ class SilvaExperimentRunner:
                         f.flush()
                         print(f"  -> Result: {time_s}s")
                         
+        self.plot_build_results(csv_path)
         print(f"=== BUILD Experiment Completed ===")
+
+
+    def plot_build_results(self, csv_path):
+        try:
+            import matplotlib.pyplot as plt
+            import numpy as np
+            from collections import defaultdict
+        except ImportError:
+            print("[Warning] matplotlib or numpy not installed. Skipping plot generation.")
+            return
+
+        time_data = defaultdict(lambda: defaultdict(list))
+        mem_data = defaultdict(lambda: defaultdict(list))
+        
+        with open(csv_path, 'r') as f:
+            import csv
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["Build_Time_Seconds"] in ["N/A", "PARSE_ERROR", "TIMEOUT", "CRASH"]: continue
+                dist = row["Distribution"]
+                size = row["Size"]
+                algo = row["Algorithm"]
+                time_s = float(row["Build_Time_Seconds"])
+                mem_mb = row["Memory_MB"]
+                
+                time_data[dist][size].append((algo, time_s))
+                if mem_mb not in ["N/A", "PARSE_ERROR"]:
+                    mem_data[dist][size].append((algo, float(mem_mb)))
+
+        import os
+        plot_dir = os.path.join(self.results_dir, "build_plots")
+        os.makedirs(plot_dir, exist_ok=True)
+
+        for dist, sizes_dict in time_data.items():
+            sizes = list(sizes_dict.keys())
+            # Ensure sizes are sorted properly (1M, 10M, 20M...)
+            sizes.sort(key=lambda x: int(x.replace('M', '')) if 'M' in x else 0)
+            
+            algos = self.algorithms
+            
+            # Plot Time
+            plt.figure(figsize=(12, 6))
+            x = np.arange(len(sizes))
+            width = 0.15
+            
+            for i, algo in enumerate(algos):
+                y = []
+                for sz in sizes:
+                    val = next((v for a, v in sizes_dict[sz] if a == algo), 0)
+                    y.append(val)
+                plt.bar(x + i*width - width*len(algos)/2, y, width, label=algo)
+            
+            plt.title(f'Build Time (Seconds) - {dist}')
+            plt.xlabel('Dataset Size')
+            plt.ylabel('Time (Seconds)')
+            plt.xticks(x, sizes)
+            plt.legend()
+            plt.grid(axis='y')
+            plt.tight_layout()
+            plt.savefig(os.path.join(plot_dir, f'build_time_{dist}.png'))
+            plt.close()
+
+        for dist, sizes_dict in mem_data.items():
+            sizes = list(sizes_dict.keys())
+            sizes.sort(key=lambda x: int(x.replace('M', '')) if 'M' in x else 0)
+            algos = self.algorithms
+            
+            plt.figure(figsize=(12, 6))
+            x = np.arange(len(sizes))
+            width = 0.15
+            
+            for i, algo in enumerate(algos):
+                y = []
+                for sz in sizes:
+                    val = next((v for a, v in sizes_dict[sz] if a == algo), 0)
+                    y.append(val)
+                plt.bar(x + i*width - width*len(algos)/2, y, width, label=algo)
+            
+            plt.title(f'Build Memory (MB) - {dist}')
+            plt.xlabel('Dataset Size')
+            plt.ylabel('Memory (MB)')
+            plt.xticks(x, sizes)
+            plt.legend()
+            plt.grid(axis='y')
+            plt.tight_layout()
+            plt.savefig(os.path.join(plot_dir, f'build_mem_{dist}.png'))
+            plt.close()
+        print(f"Generated build plots in {plot_dir}")
 
     def run_batch_experiment(self, task_name, action_keyword):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -130,7 +224,12 @@ class SilvaExperimentRunner:
                         cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
                         if self.ratios:
                             cmd.extend(["-br", self.ratios, "-p", "0.2"])
-                        output = self.run_command(cmd, timeout=300)
+                        output = self.run_command(cmd, timeout=1800)
+                        audit_log_path = os.path.join(self.results_dir, f"audit_log_{task_name}{suffix}_{timestamp}.txt")
+                        with open(audit_log_path, 'a') as af:
+                            af.write(f"\n{'='*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CMD: {' '.join(cmd)}\n{'='*60}\n")
+                            if output: af.write(output + "\n")
+                        
                         
                         threads_str = str(self.threads) if self.threads else "ALL"
                         
