@@ -7,3 +7,33 @@ AGENTS.md
 results_experiments/
 .cache/
 verify_bench
+
+# CMake & Compiled Binaries
+*.o
+*.a
+*.so
+*.dylib
+*.out
+*.exe
+compile_commands.json
+CMakeCache.txt
+CMakeFiles/
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Specific large binaries from subdirectories
+baselines/pkdtree/tests/zdtree/octTree/neighbors
+
+# Data directories
+baselines/pkdtree/script/data/
+baselines/pkdtree/script/plots/
+baselines/pkdtree/script/backup_data/
+verification_results/
+baselines/pkdtree/benchmark/**/*.out
+baselines/pkdtree/script/*.out
+baselines/pkdtree/script/*.csv

@@ -27,6 +27,7 @@ public:
     typedef T value_type;
     TrackingAllocator() = default;
     template <typename U> TrackingAllocator(const TrackingAllocator<U>&) {}
+    template<class U> struct rebind { typedef TrackingAllocator<U> other; };
     
     T* allocate(std::size_t n) {
         boost_live_mem.fetch_add(n * sizeof(T), std::memory_order_relaxed);

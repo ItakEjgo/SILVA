@@ -1,3 +1,4 @@
+#include <span>
 #pragma once
 #include "test_utils.hpp"
 namespace ZDTest{
@@ -6,7 +7,7 @@ namespace ZDTest{
 	void spatial_join_test(PT &P1, PT &P2, FT &point_dis){
 		auto P_set = get_sorted_points(P1);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version for P1
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version for P1
 
 		P_set = get_sorted_points(P2);
 		mvq::Tree zdtree2(mvq::Config::get().leaf_size);
@@ -66,7 +67,7 @@ namespace ZDTest{
         /*  build tree */
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version
 
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
         /* get insert, delete points */
@@ -147,7 +148,7 @@ namespace ZDTest{
         /*  build tree */
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version
 
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
         /* get insert, delete points */
@@ -166,11 +167,11 @@ namespace ZDTest{
 			
 			// get version 1 by deletion
 			auto P_delete_sorted = get_sorted_points(P_delete);
-			auto new_ver = zdtree.multi_version_batch_delete_sorted(P_delete_sorted, zdtree.root);	//	new version
+			auto new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_delete_sorted.data(), P_delete_sorted.size()), zdtree.root);	//	new version
 			
 			// get version 2 by insertion
 			auto P_insert_sorted = get_sorted_points(P_insert);
-			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(P_insert_sorted, new_ver);
+			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_insert_sorted.data(), P_insert_sorted.size()), new_ver);
 			
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -211,7 +212,7 @@ namespace ZDTest{
 	auto spatial_diff_test_fix_size(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version
 
 		parlay::sequence<size_t> addCnt(range_queries.size());
 		parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -234,11 +235,11 @@ namespace ZDTest{
 
 			// get version 1 by deletion
 			auto P_delete_sorted = get_sorted_points(P_delete);
-			auto new_ver = zdtree.multi_version_batch_delete_sorted(P_delete_sorted, zdtree.root);	//	new version
+			auto new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_delete_sorted.data(), P_delete_sorted.size()), zdtree.root);	//	new version
 
 			// get version 2 by insertion
 			auto P_insert_sorted = get_sorted_points(P_insert);
-			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(P_insert_sorted, new_ver);
+			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_insert_sorted.data(), P_insert_sorted.size()), new_ver);
 
 	    	auto diff_avg = time_loop(
 		    	3, 1.0, [&]() {},
@@ -261,7 +262,7 @@ namespace ZDTest{
 	auto spatial_diff_test_fix_ratio(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version
 
 		parlay::sequence<size_t> addCnt(range_queries.size());
 		parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -284,11 +285,11 @@ namespace ZDTest{
 
 			// get version 1 by deletion
 			auto P_delete_sorted = get_sorted_points(P_delete);
-			auto new_ver = zdtree.multi_version_batch_delete_sorted(P_delete_sorted, zdtree.root);	//	new version
+			auto new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_delete_sorted.data(), P_delete_sorted.size()), zdtree.root);	//	new version
 
 			// get version 2 by insertion
 			auto P_insert_sorted = get_sorted_points(P_insert);
-			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(P_insert_sorted, new_ver);
+			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_insert_sorted.data(), P_insert_sorted.size()), new_ver);
 
 	    	auto diff_avg = time_loop(
 		    	3, 1.0, [&]() {},
@@ -312,7 +313,7 @@ namespace ZDTest{
 	auto spatial_diff_test(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool &early_end, bool use_hilbert = false){
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version
 
 		parlay::sequence<size_t> addCnt(range_queries.size());
 		parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -330,11 +331,11 @@ namespace ZDTest{
 
 			// get version 1 by deletion
 			auto P_delete_sorted = get_sorted_points(P_delete);
-			auto new_ver = zdtree.multi_version_batch_delete_sorted(P_delete_sorted, zdtree.root);	//	new version
+			auto new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_delete_sorted.data(), P_delete_sorted.size()), zdtree.root);	//	new version
 
 			// get version 2 by insertion
 			auto P_insert_sorted = get_sorted_points(P_insert);
-			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(P_insert_sorted, zdtree.root);
+			auto new_ver2 = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_insert_sorted.data(), P_insert_sorted.size()), zdtree.root);
 
 			// cout << P_insert.size() << ", " << P_delete.size() << endl;
 			// cout << zdtree.collect_records(new_ver).size() << ", " << zdtree.collect_records(new_ver2).size() << endl;
@@ -389,7 +390,7 @@ namespace ZDTest{
 	void diff_test(PT P, int batch_percent = 10, bool use_hilbert = false){
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);	// initial version
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// initial version
 
 		auto batch_size = P.size() * batch_percent / 100;	//	insertion 10%
 
@@ -399,13 +400,13 @@ namespace ZDTest{
 		});
 		
 		auto P_insert_sorted = get_sorted_points(P_insert);
-		auto new_ver = zdtree.multi_version_batch_insert_sorted(P_insert_sorted, zdtree.root);
+		auto new_ver = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_insert_sorted.data(), P_insert_sorted.size()), zdtree.root);
 
 		auto delete_size = std::min(P.size(), (size_t)2 * batch_size);
 		auto P_delete = P.substr(0, delete_size);
 		// auto P_delete = P.substr(0, 10);
 		auto P_delete_sorted = get_sorted_points(P_delete);
-		new_ver = zdtree.multi_version_batch_delete_sorted(P_delete_sorted, new_ver);	//	new version
+		new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_delete_sorted.data(), P_delete_sorted.size()), new_ver);	//	new version
 
 		auto add_sz = 0, remove_sz = 0;
 	    auto zd_diff_avg = time_loop(
@@ -429,7 +430,7 @@ namespace ZDTest{
 		// build zdtree initial version
 		auto P_set = get_sorted_points(P);
 		mvq::Tree zdtree(mvq::Config::get().leaf_size);
-		zdtree.build(P_set);
+		zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
 		cout << "[INFO] Tree build finished." << endl;
 		zdtree.multi_version_roots.emplace_back(zdtree.root);
 
@@ -447,7 +448,7 @@ namespace ZDTest{
 			});
 
 			auto P_insert_sorted = get_sorted_points(P_insert);
-			new_ver = zdtree.multi_version_batch_insert_sorted(P_insert_sorted, new_ver);
+			new_ver = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_insert_sorted.data(), P_insert_sorted.size()), new_ver);
 			zdtree.multi_version_roots.emplace_back(new_ver);
 		}
 		cout << "[INFO] Tree insertion finished." << endl;
@@ -461,7 +462,7 @@ namespace ZDTest{
 			});
 
 			auto P_delete_sorted = get_sorted_points(P_delete);
-			new_ver = zdtree.multi_version_batch_delete_sorted(P_delete_sorted, new_ver);
+			new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_delete_sorted.data(), P_delete_sorted.size()), new_ver);
 			zdtree.multi_version_roots.emplace_back(new_ver);
 		}
 
@@ -585,7 +586,7 @@ namespace ZDTest{
 			},
             [&]() {
                 auto P_set = get_sorted_points(P);
-                zdtree.build(P_set);
+                zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
             },
    	    	[&](){
 			});
@@ -647,7 +648,7 @@ namespace ZDTest{
 			},
             [&]() {
                 auto P_set = get_sorted_points(P);
-                zdtree.build(P_set);
+                zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
 				zdtree.multi_version_roots.emplace_back(zdtree.root);
 				// node_num = zdtree.num_of_nodes();
 				// leaf_map = zdtree.leaf_size_status();
@@ -677,7 +678,7 @@ namespace ZDTest{
     //     shared_ptr<mvq::BaseNode> new_ver = nullptr;
 
     //     P_set = get_sorted_address(P_delete);   //  delete P_delete
-    //     new_ver = zdtree.multi_version_batch_delete_sorted(P_set, zdtree.root);
+    //     new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_set.data(), P_set.size()), zdtree.root);
 
 
 
@@ -719,8 +720,8 @@ namespace ZDTest{
 		
 
 	// 	auto P_set = get_sorted_address(P);
-	// 	zdtree.build(P_set);	//	original tree;
-	// 	seq_zdtree.build(P_set);
+	// 	zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	//	original tree;
+	// 	seq_zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
 	// 	cout << "original hash: " << zdtree.tree_hash(zdtree.root) << ", " << seq_zdtree.tree_hash(seq_zdtree.root) << endl;
 
 
@@ -747,7 +748,7 @@ namespace ZDTest{
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    auto P_set = get_sorted_points(P_base); // build original tree
 
-	    zdtree.build(P_set);
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
 
 		auto rand_p = shuffle_point(P_update);
 		parlay::parallel_for (0, rand_p.size(), [&](int i){
@@ -774,7 +775,7 @@ namespace ZDTest{
                         [&]() { test_ver.reset(); },
                         [&]() { 
                             auto P2_set = get_sorted_points(P2);
-                            test_ver = zdtree.multi_version_batch_insert_sorted(P2_set, versions.back()); 
+                            test_ver = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P2_set.data(), P2_set.size()), versions.back()); 
                         },
                         [&]() {}
                     );
@@ -806,7 +807,7 @@ namespace ZDTest{
 
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    auto P_set = get_sorted_points(P_base); // build original tree
-	    zdtree.build(P_set);
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
 
 		auto rand_p = shuffle_point(P_base);
 		
@@ -830,7 +831,7 @@ namespace ZDTest{
                         [&]() { test_ver.reset(); },
                         [&]() { 
                             auto P2_set = get_sorted_points(P2);
-                            test_ver = zdtree.multi_version_batch_delete_sorted(P2_set, versions.back()); 
+                            test_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P2_set.data(), P2_set.size()), versions.back()); 
                         },
                         [&]() {}
                     );
@@ -864,7 +865,7 @@ namespace ZDTest{
 
 	//     // P_set = get_sorted_address(P3);
 	//     P_set = get_sorted_points(P3);
-	//     zdtree.build(P_set); // build for 1+x%
+	//     zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size())); // build for 1+x%
 	//     parlay::hashtable<parlay::hash_numeric<int> > table(P2.size(), parlay::hash_numeric<int>{});
 
 
@@ -878,7 +879,7 @@ namespace ZDTest{
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    // auto P_set = get_sorted_address(P); // build original tree
 	    auto P_set = get_sorted_points(P); // build original tree
-	    zdtree.build(P_set);
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));
 		zdtree.multi_version_roots.emplace_back(zdtree.root);
 
 		auto tot_node_count = zdtree.num_of_nodes();
@@ -889,7 +890,7 @@ namespace ZDTest{
 		    3, 1.0, [&]() {},
 		    [&]() {
 			    P_set = get_sorted_points(P_insert);
-			    new_ver = zdtree.multi_version_batch_insert_sorted(P_set, zdtree.root);
+			    new_ver = zdtree.multi_version_batch_insert_sorted(std::span<geobase::Point>(P_set.data(), P_set.size()), zdtree.root);
 		    },
 	    [&](){} );
 
@@ -902,7 +903,7 @@ namespace ZDTest{
 		
 	    // zdtree.clear();
 		// P_set = get_sorted_points(P);
-	    // zdtree.build(P_set); 
+	    // zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size())); 
 
 	    parlay::hashtable<parlay::hash_numeric<int> > table(P_delete.size(), parlay::hash_numeric<int>{});
 
@@ -911,8 +912,8 @@ namespace ZDTest{
 		    3, 1.0, [&]() { },
 		    [&]() {
 			    P_set = get_sorted_points(P_delete);
-			    // new_ver = zdtree.multi_version_batch_delete_sorted(P_set, zdtree.root);
-			    new_ver = zdtree.multi_version_batch_delete_sorted(P_set, inserted_ver);
+			    // new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_set.data(), P_set.size()), zdtree.root);
+			    new_ver = zdtree.multi_version_batch_delete_sorted(std::span<geobase::Point>(P_set.data(), P_set.size()), inserted_ver);
 		    },
 	    [&](){} );
 
@@ -941,7 +942,7 @@ namespace ZDTest{
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 
 	    auto P_set = get_sorted_points(P);
-	    zdtree.build(P_set);	// 	build for P
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// 	build for P
 
 		parlay::sequence<size_t> rangeCnt(querys.size());
 		for (size_t i = 0; i < querys.size(); i++){
@@ -970,7 +971,7 @@ namespace ZDTest{
 	void range_report_test(PT P, RQ querys, parlay::sequence<size_t> &cnt){
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    auto P_set = get_sorted_points(P);
-	    zdtree.build(P_set);	// 	build for P
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// 	build for P
 
 		parlay::sequence<parlay::sequence<Point> > rangeReport(querys.size());
 		parlay::sequence<size_t> rangeReportCnt(querys.size(), 0);
@@ -1015,7 +1016,7 @@ namespace ZDTest{
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    // auto P_set = get_sorted_address(P);
 	    auto P_set = get_sorted_points(P);
-	    zdtree.build(P_set);	// 	build for P
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// 	build for P
 
 		parlay::sequence<FT> knn_sqrdis(q_num);
 
@@ -1049,7 +1050,7 @@ namespace ZDTest{
 	    }
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    auto P_set = get_sorted_address(P);
-	    zdtree.build(P_set);	// 	build for P
+	    zdtree.build(std::span<geobase::Point>(P_set.data(), P_set.size()));	// 	build for P
 
 	    // auto phash = zdtree.tree_hash(zdtree.root);	// hash value for construct P directly
 	    // cout << "build zdtree finished." << endl;

@@ -1,3 +1,0 @@
-[submodule "baselines/pkdtree"]
-	path = baselines/pkdtree
-	url = https://github.com/ucrparlay/Pkd-tree.git

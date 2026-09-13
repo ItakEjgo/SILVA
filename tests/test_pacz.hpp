@@ -4,7 +4,7 @@ namespace PACZ{
 
 
 	template<typename PT>
-	void multi_version_test(PT P, string dir, int start_year = 14, int version_num = 5){
+    inline void multi_version_test(PT P, string dir, int start_year = 14, int version_num = 5){
 		auto cur_year = start_year;
 		
 		parlay::sequence<geobase::Point> P_delete[version_num], P_insert[version_num], P_update[version_num], P_updove[version_num];
@@ -106,7 +106,7 @@ namespace PACZ{
 	}
 
 	template<typename PT, typename RQ>
-	void plain_spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
+    inline void plain_spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
 		/*  build tree */
 		auto pacz0 = PACZ::map_init(P);	//	initial version
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
@@ -158,7 +158,7 @@ namespace PACZ{
 	}
 
 	template<typename PT, typename RQ>
-    void spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
+    inline void spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
         /*  build tree */
 		auto pacz0 = PACZ::map_init(P);	//	initial version
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
@@ -360,7 +360,7 @@ namespace PACZ{
 
 
 	template<typename PT>
-	void multi_version_query_test(PT P, string query_dir, int batch_percent = 10, int version_num = 6){
+    inline void multi_version_query_test(PT P, string query_dir, int batch_percent = 10, int version_num = 6){
 		// build zdtree initial version
 		auto CPAMZ = PACZ::map_init(P);
 		cout << "build finished" << endl;
@@ -454,7 +454,7 @@ namespace PACZ{
 	}
 
 	template<typename PT>
-	void diff_test(PT P, int batch_percent = 10, bool use_hilbert = false){
+    inline void diff_test(PT P, int batch_percent = 10, bool use_hilbert = false){
 		auto pacz0 = PACZ::map_init(P);	//	initial version
 
 		auto batch_size = P.size() * batch_percent / 100;	//	insertion 10%
@@ -488,7 +488,7 @@ namespace PACZ{
 
 
 	template<typename PT>
-	void build_test(PT P, bool use_hilbert = false){
+    inline void build_test(PT P, bool use_hilbert = false){
 		PACZ::zmap tree;
 
 		auto cpam_build_avg = time_loop(
@@ -524,7 +524,7 @@ namespace PACZ{
 	}
 
 	template<class PT, class RQ>
-    void range_count_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false){
+    inline void range_count_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false){
 	    auto tree = PACZ::map_init(P, use_hilbert);
 
 		parlay::sequence<size_t> rangeCnt(querys.size());
@@ -551,7 +551,7 @@ namespace PACZ{
 
 
 	template<class PT, class RQ>
-    void range_report_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false, size_t par_for_granularity = 100){
+    inline void range_report_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false, size_t par_for_granularity = 100){
 	    auto tree = PACZ::map_init(P, use_hilbert);
 
 		// parlay::sequence<Bounding_Box> q2(querys.size());
@@ -610,7 +610,7 @@ namespace PACZ{
     }
 
 	template<class PT>
-    void knn_test(PT P, size_t k = 10, size_t q_num = 50000, bool use_hilbert = false){
+    inline void knn_test(PT P, size_t k = 10, size_t q_num = 50000, bool use_hilbert = false){
 	    auto tree = PACZ::map_init(P, use_hilbert);
 		
 		auto knn_sqrdis = parlay::sequence<size_t>::uninitialized(q_num);
@@ -639,7 +639,7 @@ namespace PACZ{
 	
 
 	template<typename PT>
-	void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
+    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
 		auto n = P_base.size();
 		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
 
@@ -696,7 +696,7 @@ namespace PACZ{
 	}
 
 	template<typename PT>
-	void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
+    inline void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
 		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
 		auto rand_p = shuffle_point(P_base);
 

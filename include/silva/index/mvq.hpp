@@ -1,3 +1,4 @@
+#include <span>
 #include <atomic>
 #pragma once
 // --- From mvq/src/mvq/node.hpp ---

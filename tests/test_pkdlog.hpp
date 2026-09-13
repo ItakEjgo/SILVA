@@ -16,7 +16,7 @@ namespace PKDLogTest {
         return P_conv;
     }
 
-    void build_test(PT P) {
+    inline void build_test(PT P) {
         auto P_conv = convert_points(P);
         double final_mem = 0;
         std::shared_ptr<PKDLog::VersionNode> tree;
@@ -33,7 +33,7 @@ namespace PKDLogTest {
         std::cout << "[PkdLogTree]: build time (avg): " << ms / 1000.0 << std::endl;
     }
 
-    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios, double p = 1.0) {
+    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto P_conv = convert_points(P_base);
         auto n = P_base.size();
         auto rand_p = geobase::shuffle_point(P_update);
@@ -88,7 +88,7 @@ namespace PKDLogTest {
         }
     }
 
-    void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios, double p = 1.0) {
+    inline void batch_delete_test(PT P_base, parlay::sequence<double>& batch_ratios, double p = 1.0) {
         auto rand_p = geobase::shuffle_point(P_base);
         auto P_conv = convert_points(P_base);
         auto P_delete_conv = convert_points(rand_p);
@@ -139,7 +139,7 @@ namespace PKDLogTest {
         }
     }
 
-    void range_report_test(PT P, RQ qs, parlay::sequence<size_t>& cnt) {
+    inline void range_report_test(PT P, RQ qs, parlay::sequence<size_t>& cnt) {
         auto P_conv = convert_points(P);
         auto tree = PKDLog::map_init(P_conv);
         double ms = 0;
@@ -164,7 +164,7 @@ namespace PKDLogTest {
         if (is_correct) std::cout << "[PkdLogTree] Accuracy: 100% (All " << qs.size() << " queries correct)" << std::endl;
     }
     
-    void spatial_diff_test_latency(PT P, RQ querys, parlay::sequence<size_t>& batch_sizes, size_t insert_ratio, double p = 1.0) {
+    inline void spatial_diff_test_latency(PT P, RQ querys, parlay::sequence<size_t>& batch_sizes, size_t insert_ratio, double p = 1.0) {
         auto P_conv = convert_points(P);
         auto tree0 = PKDLog::map_init(P_conv);
         auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
