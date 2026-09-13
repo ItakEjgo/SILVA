@@ -12,11 +12,10 @@ class SilvaExperimentRunner:
         self.base_dir = "."
         self.binary_path = "build/main"
         self.datasets_dir = "dataset"
-        self.results_dir = "results_experiments"
-        
         self.distributions = ["uniform"]
-        self.sizes = ["1M", "10M", "20M", "30M", "40M", "50M"]
-        self.algorithms = ["mvq", "pacz", "boost", "rlog", "pkdtree", "pkdlog"]
+        self.sizes = ["10M"]
+        self.algorithms = ["mvq", "pacz", "rlog", "pkdlog"]
+        self.results_dir = "results_experiments"
         
         os.makedirs(self.results_dir, exist_ok=True)
 
@@ -33,7 +32,7 @@ class SilvaExperimentRunner:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
             if res.returncode != 0:
                 print(f"  [ERROR] Process exited with code {res.returncode}")
-                return None
+                return res.stdout + f"\n[PROCESS_CRASHED_WITH_CODE_{res.returncode}]"
             return res.stdout
         except subprocess.TimeoutExpired:
             print("  [TIMEOUT] Process took too long.")
@@ -234,18 +233,36 @@ class SilvaExperimentRunner:
                         threads_str = str(self.threads) if self.threads else "ALL"
                         
                         res_list = self.parse_batch_time(output, action_keyword)
-
                         # Capture and plot per-batch data!
-                        batch_times_matches = re.findall(r'\[per_batch_time\]:\s*(.*)', output)
-                        batch_mems_matches = re.findall(r'\[per_batch_mem\]:\s*(.*)', output)
-                        if not batch_times_matches and '[per_batch_time_val]:' in output:
+                        batch_times_matches = re.findall(r'\[per_batch_time\]:\s*(.*)', output) if output else []
+                        batch_mems_matches = re.findall(r'\[per_batch_mem\]:\s*(.*)', output) if output else []
+                        
+                        if not batch_times_matches and output and 'step_time' in output:
+                            step_times = re.findall(r'\[step_time\]:\s*([\d\.]+)', output)
+                            step_mems = re.findall(r'\[step_mem\]:\s*([\d\.]+)', output)
+                            if step_times and step_mems:
+                                batch_times_matches = [','.join(step_times)]
+                                batch_mems_matches = [','.join(step_mems)]
+
+                        if not batch_times_matches and output and '[per_batch_time_val]:' in output:
                             times_vals = re.findall(r'\[per_batch_time_val\]:\s*([\d\.]+)', output)
                             mems_vals = re.findall(r'\[per_batch_mem_val\]:\s*([\d\.]+)', output)
                             if times_vals: batch_times_matches = [','.join(times_vals)]
                             if mems_vals: batch_mems_matches = [','.join(mems_vals)]
 
-                        if batch_times_matches and batch_mems_matches and res_list:
-                            for idx, (batch_size, _, _) in enumerate(res_list):
+                        if output in ["TIMEOUT", "CRASH", None] or (output and "[PROCESS_CRASHED" in output):
+                            writer.writerow([dist, size, algo, threads_str, "N/A", "CRASH", "OOM"])
+                            f.flush()
+                            # Do not continue, let it plot the partial data if any!
+
+                        if batch_times_matches and batch_mems_matches:
+                            ratios_matches = re.findall(r'\[Testing Ratio\]:\s*([\d\.]+)', output) if output else []
+                            # Fallback if testing ratio not found
+                            ratios_to_plot = [r[0] for r in res_list] if res_list else ratios_matches
+                            if not ratios_to_plot and self.ratios:
+                                ratios_to_plot = self.ratios.split(',')
+                            
+                            for idx, batch_size in enumerate(ratios_to_plot):
                                 if idx < len(batch_times_matches) and idx < len(batch_mems_matches):
                                     t_str = batch_times_matches[idx].strip()
                                     m_str = batch_mems_matches[idx].strip()

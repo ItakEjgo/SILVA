@@ -762,7 +762,7 @@ namespace ZDTest{
                 std::vector<double> batch_times;
                 std::vector<double> batch_mems;
                 double total_ms = 0;
-
+                cout << "[Testing Ratio]: " << ratio << endl;
                 for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
                     size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
                     auto P2 = rand_p.substr(i, current_batch_size);
@@ -783,7 +783,9 @@ namespace ZDTest{
                     total_ms += batch_avg * 1000.0;
                     versions.push_back(test_ver);
                     cout << "[versions count]: " << versions.size() << endl;
-                    batch_mems.push_back(mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
+                    double mem_mb = mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+                    batch_mems.push_back(mem_mb);
+                    cout << "[step_time]: " << batch_avg * 1000.0 << " [step_mem]: " << mem_mb << endl;
                 }
 
                 cout << "[per_batch_time]: ";
@@ -816,7 +818,7 @@ namespace ZDTest{
                 std::vector<double> batch_times;
                 std::vector<double> batch_mems;
                 double total_ms = 0;
-
+                cout << "[Testing Ratio]: " << ratio << endl;
                 for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
                     size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
                     auto P2 = rand_p.substr(i, current_batch_size);
@@ -837,7 +839,9 @@ namespace ZDTest{
                     total_ms += batch_avg * 1000.0;
                     versions.push_back(test_ver);
                     cout << "[versions count]: " << versions.size() << endl;
-                    batch_mems.push_back(mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0));
+                    double mem_mb = mvq::global_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+                    batch_mems.push_back(mem_mb);
+                    cout << "[step_time]: " << batch_avg * 1000.0 << " [step_mem]: " << mem_mb << endl;
                 }
 
                 cout << "[per_batch_time]: ";

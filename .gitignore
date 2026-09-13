@@ -4,3 +4,5 @@ __pycache__/
 .tmp_experiments/
 AGENTS.md
 .omp/
+results_experiments/
+.cache/
