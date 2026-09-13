@@ -6,7 +6,7 @@
 
 namespace cpdd {
 
-#define LOG  std::cout
+#define CPDD_LOG std::cout
 #define ENDL std::endl << std::flush
 
 // TODO: add default constructor and destructor

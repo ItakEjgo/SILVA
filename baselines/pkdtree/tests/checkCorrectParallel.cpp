@@ -47,7 +47,7 @@ void runCGAL(points& wp, points& wi, Typename* cgknn, int queryNum, parlay::sequ
     Tree tree(_points.begin(), _points.end(), median);
     tree.build<CGAL::Parallel_tag>();
 
-    // LOG << tree.bounding_box() << ENDL;
+    // CPDD_LOG << tree.bounding_box() << ENDL;
     size_t sz = wp.size() * batchInsertCheckRatio;
 
     if (tag >= 1) {
@@ -61,7 +61,7 @@ void runCGAL(points& wp, points& wi, Typename* cgknn, int queryNum, parlay::sequ
         wp.append(wi.cut(0, sz));
         puts("finish insert to cgal");
     }
-    LOG << tree.root()->num_items() << ENDL;
+    CPDD_LOG << tree.root()->num_items() << ENDL;
 
     if (tag >= 2) {
         assert(_points.size() == wi.size());
@@ -70,13 +70,13 @@ void runCGAL(points& wp, points& wi, Typename* cgknn, int queryNum, parlay::sequ
             tree.remove(_points[i]);
         }
 
-        LOG << tree.root()->num_items() << ENDL;
+        CPDD_LOG << tree.root()->num_items() << ENDL;
         wp.pop_tail(sz);
         puts("finish delete from cgal");
     }
 
     //* cgal query
-    LOG << "begin tbb query" << ENDL << std::flush;
+    CPDD_LOG << "begin tbb query" << ENDL << std::flush;
     assert(tree.is_built());
 
     if (queryType == 0) {  //* NN
@@ -105,7 +105,7 @@ void runCGAL(points& wp, points& wi, Typename* cgknn, int queryNum, parlay::sequ
             //                                                     wp[i].get_dim() );
             // d = static_cast<coord>( std::sqrt( d ) );
             // if ( i == 0 ) {
-            //   LOG << wp[i] << d << ENDL;
+            //   CPDD_LOG << wp[i] << d << ENDL;
             // }
             // Fuzzy_circle fib( a, d );
             size_t cnt = 0;
@@ -149,7 +149,7 @@ void runKDParallel(points& wp, const points& wi, Typename* kdknn, points& p, int
     // np.append( ni );
     // pkd.build( parlay::make_slice( np ), Dim );
     // pkd.batchDelete( parlay::make_slice( ni ), Dim );
-    // LOG << pkd.get_root()->size << ENDL;
+    // CPDD_LOG << pkd.get_root()->size << ENDL;
 
     buildTree<point>(Dim, wp, rounds, pkd);
     pkdtree::node* KDParallelRoot = pkd.get_root();
@@ -159,20 +159,20 @@ void runKDParallel(points& wp, const points& wi, Typename* kdknn, points& p, int
         batchInsert<point, true>(pkd, wp, wi, Dim, 2, batchInsertCheckRatio);
         if (tag == 1) wp.append(wi.cut(0, wp.size() * batchInsertCheckRatio));
         pkd.validate(Dim);
-        LOG << "finish insert" << ENDL;
+        CPDD_LOG << "finish insert" << ENDL;
     }
 
     if (tag >= 2) {
         batchDelete<point, true>(pkd, wp, wi, Dim, 2, true, batchInsertCheckRatio);
         pkd.validate(Dim);
-        LOG << "finish delete" << ENDL;
+        CPDD_LOG << "finish delete" << ENDL;
     }
 
     //* query phase
 
     assert(N >= K);
     assert(tag == 1 || wp.size() == N);
-    LOG << "begin kd query" << ENDL;
+    CPDD_LOG << "begin kd query" << ENDL;
     if (queryType == 0) {
         points new_wp(batchQuerySize);
         parlay::copy(wp.cut(0, batchQuerySize), new_wp.cut(0, batchQuerySize));
@@ -184,7 +184,7 @@ void runKDParallel(points& wp, const points& wi, Typename* kdknn, points& p, int
         rangeCount<point>(wp, pkd, kdknn, rounds, queryNum);
         maxReduceSize = parlay::reduce(parlay::delayed_tabulate(queryNum, [&](size_t i) { return kdknn[i]; }),
                                        parlay::maximum<Typename>());
-        LOG << maxReduceSize << ENDL;
+        CPDD_LOG << maxReduceSize << ENDL;
         p.resize(queryNum * maxReduceSize);
         rangeQuery<point>(wp, pkd, kdknn, rounds, queryNum, p);
     }
@@ -237,13 +237,13 @@ int main(int argc, char* argv[]) {
         std::cout << name << " ";
     }
 
-    LOG << std::setprecision(13) << wp[0] << wp[1] << ENDL;
+    CPDD_LOG << std::setprecision(13) << wp[0] << wp[1] << ENDL;
 
     using ref_t = std::reference_wrapper<point>;
     using pairs = std::pair<ref_t, int>;
     ref_t a(wp[0]);
     pairs p(a, 0);
-    LOG << p.first << " " << p.second << ENDL;
+    CPDD_LOG << p.first << " " << p.second << ENDL;
 
     Typename* cgknn;
     Typename* kdknn;
@@ -268,7 +268,7 @@ int main(int argc, char* argv[]) {
     if (tag >= 1) {
         if (iFile == NULL) {
             generate_random_points<point>(wi, 1000000, N / 2, Dim);
-            LOG << "insert " << N / 5 << " points" << ENDL;
+            CPDD_LOG << "insert " << N / 5 << " points" << ENDL;
         } else {
             auto [nn, nd] = read_points<point>(insertFile.c_str(), wi, K);
             if (nd != Dim || nn != N) {
@@ -282,7 +282,7 @@ int main(int argc, char* argv[]) {
 
     //* set result array size
     if (queryType == 0) {  //*NN
-        LOG << "---do NN query---" << ENDL;
+        CPDD_LOG << "---do NN query---" << ENDL;
         if (tag == 0) {
             cgknn = new Typename[N];
             kdknn = new Typename[N];
@@ -296,12 +296,12 @@ int main(int argc, char* argv[]) {
             kdknn = new Typename[N];
         }
     } else if (queryType == 1) {  //* range Count
-        LOG << "---do range Count---" << ENDL;
+        CPDD_LOG << "---do range Count---" << ENDL;
 
         cgknn = new Typename[queryNum];
         kdknn = new Typename[queryNum];
     } else if (queryType == 2) {
-        LOG << "---do range Query---" << ENDL;
+        CPDD_LOG << "---do range Query---" << ENDL;
 
         cgknn = new Typename[queryNum];
         kdknn = new Typename[queryNum];
@@ -314,7 +314,7 @@ int main(int argc, char* argv[]) {
 
     //* verify
     if (queryType == 0) {
-        LOG << "check NN" << ENDL;
+        CPDD_LOG << "check NN" << ENDL;
         size_t S = batchQuerySize;
         for (size_t i = 0; i < S; i++) {
             if (std::abs(cgknn[i] - kdknn[i]) > 1e-4) {
@@ -325,7 +325,7 @@ int main(int argc, char* argv[]) {
             }
         }
     } else if (queryType == 1) {
-        LOG << "check range count" << ENDL;
+        CPDD_LOG << "check range count" << ENDL;
         for (size_t i = 0; i < queryNum; i++) {
             if (std::abs(cgknn[i] - kdknn[i]) > 1e-4) {
                 puts("");
@@ -335,7 +335,7 @@ int main(int argc, char* argv[]) {
             }
         }
     } else if (queryType == 2) {
-        LOG << "check range query" << ENDL;
+        CPDD_LOG << "check range query" << ENDL;
         assert(kdOut.size() == cgOut.size());
         auto kdans = parlay::tabulate(kdOut.size(), [&](size_t i) {
             return Point_d(Dim, std::begin(kdOut[i].pnt), (std::begin(kdOut[i].pnt) + Dim));

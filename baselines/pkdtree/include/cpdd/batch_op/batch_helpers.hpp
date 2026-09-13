@@ -15,7 +15,7 @@ void ParallelKDtree<point>::flatten(typename ParallelKDtree<point>::node* T, Sli
 
     if (T->is_leaf) {
         leaf* TL = static_cast<leaf*>(T);
-        for (int i = 0; i < TL->size; i++) {
+        for (size_t i = 0; i < TL->size; i++) {
             Out[i] = TL->pts[(!TL->is_dummy) * i];
         }
         return;
@@ -38,7 +38,7 @@ void ParallelKDtree<point>::flatten_and_delete(typename ParallelKDtree<point>::n
     assert(T->size == Out.size());
     if (T->is_leaf) {
         leaf* TL = static_cast<leaf*>(T);
-        for (int i = 0; i < TL->size; i++) {
+        for (size_t i = 0; i < TL->size; i++) {
             Out[i] = TL->pts[(!TL->is_dummy) * i];
         }
         free_leaf(T);

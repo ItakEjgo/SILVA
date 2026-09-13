@@ -112,7 +112,7 @@ struct PointID : PointType<T, d> {
         for (int i = 0; i < d; i++) {
             pts[i] = Num::min(this->pnt[i], b.pnt[i]);
         }
-        return std::move(PointID(pts));
+        return PointID(pts);
     }
 
     inline const PointID maxCoords(const PointID& b) const {
@@ -120,7 +120,7 @@ struct PointID : PointType<T, d> {
         for (int i = 0; i < d; i++) {
             pts[i] = Num::max(this->pnt[i], b.pnt[i]);
         }
-        return std::move(PointID(pts));
+        return PointID(pts);
     }
 
     inline bool operator==(const PointID& x) const {

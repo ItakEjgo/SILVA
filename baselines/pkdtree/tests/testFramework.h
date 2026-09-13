@@ -63,7 +63,7 @@ size_t recurse_box(parlay::slice<point*, point*> In, parlay::sequence<std::pair<
     size_t mx = 0;
     bool goon = false;
     if (n <= range.second) {
-        // LOG << idx << " " << n << " " << ENDL;
+        // CPDD_LOG << idx << " " << n << " " << ENDL;
         boxs[idx++] = std::make_pair(tree::get_box(In), In.size());
         // NOTE: handle the cose that all points are the same then become un-divideable
         // NOTE: Modify the coefficient to make the rectangle size distribute as uniform as possible within the range
@@ -88,7 +88,7 @@ size_t recurse_box(parlay::slice<point*, point*> In, parlay::sequence<std::pair<
     auto [Out, m] = parlay::internal::split_two(In, flag);
 
     assert(Out.size() == n);
-    // LOG << dim << " " << Out[0] << Out[m] << ENDL;
+    // CPDD_LOG << dim << " " << Out[0] << Out[m] << ENDL;
     size_t l, r;
     l = recurse_box<point>(Out.cut(0, m), boxs, DIM, range, idx, recNum, type);
     r = recurse_box<point>(Out.cut(m, n), boxs, DIM, range, idx, recNum, type);
@@ -135,16 +135,16 @@ std::pair<parlay::sequence<std::pair<std::pair<point, point>, size_t>>, size_t> 
 
     srand(10);
 
-    // LOG << " " << range.first << " " << range.second << ENDL;
+    // CPDD_LOG << " " << range.first << " " << range.second << ENDL;
 
     size_t maxSize = 0;
     while (cnt < recNum) {
         parlay::copy(WP, wp);
         auto r = recurse_box<point>(parlay::make_slice(wp), bxs, DIM, range, cnt, recNum, type);
         maxSize = std::max(maxSize, r);
-        // LOG << cnt << " " << maxSize << ENDL;
+        // CPDD_LOG << cnt << " " << maxSize << ENDL;
     }
-    // LOG << "finish generate " << ENDL;
+    // CPDD_LOG << "finish generate " << ENDL;
     return std::make_pair(bxs, maxSize);
 }
 
@@ -194,12 +194,12 @@ void buildTree(const int& Dim, const parlay::sequence<point>& WP, const int& rou
     pkd.build(wp.cut(0, n), Dim);
 
     if (print == 1) {
-        LOG << aveBuild << " " << std::flush;
+        CPDD_LOG << aveBuild << " " << std::flush;
         auto deep = pkd.getAveTreeHeight();
-        LOG << deep << " " << std::flush;
+        CPDD_LOG << deep << " " << std::flush;
     } else if (print == 2) {
         size_t max_deep = 0;
-        LOG << aveBuild << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " " << pkd.getAveTreeHeight() << " "
+        CPDD_LOG << aveBuild << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " " << pkd.getAveTreeHeight() << " "
             << std::flush;
     }
 
@@ -244,10 +244,10 @@ void incrementalBuild(const int Dim, const parlay::sequence<point>& WP, const in
 
     if (print == 1) {
         auto deep = pkd.getAveTreeHeight();
-        LOG << aveIncreBuild << " " << deep << " " << std::flush;
+        CPDD_LOG << aveIncreBuild << " " << deep << " " << std::flush;
     } else if (print == 2) {  // NOTE: print the maxtree height and avetree height
         size_t max_deep = 0;
-        LOG << aveIncreBuild << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " " << pkd.getAveTreeHeight()
+        CPDD_LOG << aveIncreBuild << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " " << pkd.getAveTreeHeight()
             << " " << std::flush;
     }
     return;
@@ -298,7 +298,7 @@ void incrementalDelete(const int Dim, const parlay::sequence<point>& WP, const p
 
     if (print) {
         auto deep = pkd.getAveTreeHeight();
-        LOG << aveIncreDelete << " " << deep << " " << std::flush;
+        CPDD_LOG << aveIncreDelete << " " << deep << " " << std::flush;
     }
     return;
 }
@@ -343,7 +343,7 @@ void batchInsert(ParallelKDtree<point>& pkd, const parlay::sequence<point>& WP, 
         }
     }
 
-    LOG << aveInsert << " " << std::flush;
+    CPDD_LOG << aveInsert << " " << std::flush;
 
     return;
 }
@@ -370,7 +370,7 @@ void batchDelete(ParallelKDtree<point>& pkd, const parlay::sequence<point>& WP, 
                 pkd.batchInsert(wi.cut(0, size_t(wi.size() * ratio)), DIM);
                 parlay::copy(WP, wp), parlay::copy(WI, wi);
             } else {  //* only build wp and then delete from wp
-                // LOG << " after insert " << ENDL;
+                // CPDD_LOG << " after insert " << ENDL;
                 parlay::copy(WP, wp);
                 parlay::copy(WP, wi);
                 pkd.build(parlay::make_slice(wp), DIM);
@@ -434,7 +434,7 @@ void batchUpdateByStep(ParallelKDtree<point>& pkd, const parlay::sequence<point>
             size_t step = static_cast<size_t>(wi.size() * ratio);
             while (l < n) {
                 r = std::min(l + step, n);
-                // LOG << l << ' ' << r << ENDL;
+                // CPDD_LOG << l << ' ' << r << ENDL;
                 if (insert) {
                     pkd.batchInsert(parlay::make_slice(wi.begin() + l, wi.begin() + r), DIM);
                 } else {
@@ -442,7 +442,7 @@ void batchUpdateByStep(ParallelKDtree<point>& pkd, const parlay::sequence<point>
                 }
                 l = r;
             }
-            // LOG << l << ENDL;
+            // CPDD_LOG << l << ENDL;
         },
         [&]() { pkd.delete_tree(); });
 
@@ -462,7 +462,7 @@ void batchUpdateByStep(ParallelKDtree<point>& pkd, const parlay::sequence<point>
     //     l = r;
     // }
 
-    LOG << aveInsert << " " << std::flush;
+    CPDD_LOG << aveInsert << " " << std::flush;
 
     return;
 }
@@ -507,13 +507,13 @@ void queryKNN(const uint_fast8_t& Dim, const parlay::sequence<point>& WP, const 
         },
         [&]() {});
 
-    LOG << aveQuery << " " << std::flush;
+    CPDD_LOG << aveQuery << " " << std::flush;
     if (printHeight) {
         auto deep = pkd.getAveTreeHeight();
-        LOG << deep << " " << std::flush;
+        CPDD_LOG << deep << " " << std::flush;
     }
     if (printVisNode) {
-        LOG << parlay::reduce(visNum.cut(0, n)) / n << " " << std::flush;
+        CPDD_LOG << parlay::reduce(visNum.cut(0, n)) / n << " " << std::flush;
     }
 
     return;
@@ -542,7 +542,7 @@ void rangeCount(const parlay::sequence<point>& wp, ParallelKDtree<point>& pkd, T
         },
         [&]() {});
 
-    LOG << aveCount << " " << std::flush;
+    CPDD_LOG << aveCount << " " << std::flush;
 
     return;
 }
@@ -573,7 +573,7 @@ void rangeCountRadius(const parlay::sequence<point>& wp, ParallelKDtree<point>& 
         },
         [&]() {});
 
-    LOG << aveCount << " " << std::flush;
+    CPDD_LOG << aveCount << " " << std::flush;
 
     return;
 }
@@ -608,7 +608,7 @@ void rangeQuery(const parlay::sequence<point>& wp, ParallelKDtree<point>& pkd, T
         }
     });
 
-    LOG << aveQuery << " " << std::flush;
+    CPDD_LOG << aveQuery << " " << std::flush;
     return;
 }
 
@@ -642,7 +642,7 @@ void rangeCountFix(const parlay::sequence<point>& WP, ParallelKDtree<point>& pkd
         },
         [&]() {});
 
-    LOG << aveCount << " " << std::flush;
+    CPDD_LOG << aveCount << " " << std::flush;
 
     return;
 }
@@ -668,8 +668,8 @@ void rangeCountFixWithLog(const parlay::sequence<point>& WP, ParallelKDtree<poin
                 visLeafNum[i] = 0;
             },
             [&]() { kdknn[i] = pkd.range_count(queryBox[i].first, visLeafNum[i], visInterNum[i]); }, [&]() {});
-        if (queryBox[i].second != kdknn[i]) LOG << "wrong" << ENDL;
-        LOG << queryBox[i].second << " " << std::scientific << aveQuery << ENDL;
+        if (queryBox[i].second != kdknn[i]) CPDD_LOG << "wrong" << ENDL;
+        CPDD_LOG << queryBox[i].second << " " << std::scientific << aveQuery << ENDL;
     }
 
     return;
@@ -685,7 +685,7 @@ void rangeQueryFix(const parlay::sequence<point>& WP, ParallelKDtree<point>& pkd
     using box = typename tree::box;
 
     auto [queryBox, maxSize] = gen_rectangles(recNum, recType, WP, DIM);
-    // LOG << maxSize << ENDL;
+    // CPDD_LOG << maxSize << ENDL;
     Out.resize(recNum * maxSize);
 
     int n = WP.size();
@@ -702,12 +702,12 @@ void rangeQueryFix(const parlay::sequence<point>& WP, ParallelKDtree<point>& pkd
             });
             // for (size_t i = 0; i < recNum; i++) {
             //     kdknn[i] = pkd.range_query_serial(queryBox[i].first, Out.cut(i * step, (i + 1) * step));
-            //     // LOG << kdknn[i] << " " << std::flush;
+            //     // CPDD_LOG << kdknn[i] << " " << std::flush;
             // }
         },
         [&]() {});
 
-    LOG << aveQuery << " " << std::flush;
+    CPDD_LOG << aveQuery << " " << std::flush;
     return;
 }
 
@@ -731,9 +731,9 @@ void rangeQuerySerialWithLog(const parlay::sequence<point>& WP, ParallelKDtree<p
             rounds, -1.0, [&]() {},
             [&]() { kdknn[i] = pkd.range_query_serial(queryBox[i].first, Out.cut(i * step, (i + 1) * step)); },
             [&]() {});
-        if (queryBox[i].second != kdknn[i]) LOG << "wrong" << ENDL;
-        LOG << queryBox[i].second << " " << std::scientific << aveQuery << ENDL;
-        // LOG << queryBox[i].second << " " << std::setprecision(7) << aveQuery << ENDL;
+        if (queryBox[i].second != kdknn[i]) CPDD_LOG << "wrong" << ENDL;
+        CPDD_LOG << queryBox[i].second << " " << std::scientific << aveQuery << ENDL;
+        // CPDD_LOG << queryBox[i].second << " " << std::setprecision(7) << aveQuery << ENDL;
     }
 
     return;
@@ -834,24 +834,24 @@ void insertOsmByTime(const int Dim, const parlay::sequence<parlay::sequence<poin
     }
 
     // NOTE: begin revert
-    LOG << ENDL;
+    CPDD_LOG << ENDL;
     int within_num = 0;
     for (int i = 0; i < time_period_num; i++) {
-        LOG << wp[i].size() << " ";
+        CPDD_LOG << wp[i].size() << " ";
         parlay::internal::timer t;
         t.reset(), t.start();
         pkd.batchInsert(wp[i].cut(input_offset, wp[i].size()), Dim);
         t.stop();
-        LOG << t.total_time() << " ";
+        CPDD_LOG << t.total_time() << " ";
         if (within_num == sliding_window_len) {
-            // LOG << "begin delete " << wi[i - within_num].size() << " ";
+            // CPDD_LOG << "begin delete " << wi[i - within_num].size() << " ";
             t.reset(), t.start();
             pkd.batchDelete(wi[i - within_num].cut(input_offset, wi[i - within_num].size()), Dim);
             t.stop();
-            LOG << t.total_time() << " ";
+            CPDD_LOG << t.total_time() << " ";
         } else {
             within_num++;
-            LOG << "-1 ";
+            CPDD_LOG << "-1 ";
         }
 
         if (time_period_num < 12) {
@@ -859,11 +859,11 @@ void insertOsmByTime(const int Dim, const parlay::sequence<parlay::sequence<poin
             queryKNN(Dim, query_points, rounds, pkd, kdknn, K, true);
         }
 
-        LOG << ENDL;
+        CPDD_LOG << ENDL;
     }
 
     size_t max_deep = 0;
-    LOG << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " " << pkd.getAveTreeHeight() << " " << std::flush;
+    CPDD_LOG << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " " << pkd.getAveTreeHeight() << " " << std::flush;
 
     return;
 }
@@ -889,7 +889,7 @@ void incrementalBuildAndQuery(const int Dim, const parlay::sequence<point>& WP, 
     /*const int k[3] = {1, 5, 100};*/
     const int k[3] = {1};
 
-    /*LOG << "begin insert: " << batchSize << ENDL;*/
+    /*CPDD_LOG << "begin insert: " << batchSize << ENDL;*/
     size_t cnt = 0;
     while (l < n) {
         parlay::internal::timer t;
@@ -909,7 +909,7 @@ void incrementalBuildAndQuery(const int Dim, const parlay::sequence<point>& WP, 
 
         if (cnt % 10 == 0) {
             size_t max_deep = 0;
-            LOG << l << " " << r << " " << t.total_time() << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " "
+            CPDD_LOG << l << " " << r << " " << t.total_time() << " " << pkd.getMaxTreeDepth(pkd.get_root(), max_deep) << " "
                 << pkd.getAveTreeHeight() << " " << std::flush;
 
             // NOTE: add additional query phase
@@ -917,7 +917,7 @@ void incrementalBuildAndQuery(const int Dim, const parlay::sequence<point>& WP, 
             for (int i = 0; i < 1; i++) {
                 queryKNN<point, 0, 1>(Dim, query_points, 1, pkd, kdknn, k[i], true);
             }
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
         }
         cnt++;
         l = r;

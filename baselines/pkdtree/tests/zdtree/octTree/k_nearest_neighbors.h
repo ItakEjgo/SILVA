@@ -554,26 +554,26 @@ struct k_nearest_neighbors {
         assert(box_within_box(merged_box, T->Box(), 1e-9));
         // assert(box_within_box(T->Box(), merged_box, 1e-9));
         if (intersect_box(Lbox, Rbox, 1e-9)) {
-            LOG << "<<<<<<<< \n";
-            LOG << std::setprecision(6) << Lbox.first << "->" << Lbox.second << ENDL;
-            LOG << std::setprecision(6) << Rbox.first << "->" << Rbox.second << ENDL;
+            CPDD_LOG << "<<<<<<<< \n";
+            CPDD_LOG << std::setprecision(6) << Lbox.first << "->" << Lbox.second << ENDL;
+            CPDD_LOG << std::setprecision(6) << Rbox.first << "->" << Rbox.second << ENDL;
             auto lpts = T->Left()->flatten();
             auto rpts = T->Right()->flatten();
-            LOG << "The left tree contain: \n";
+            CPDD_LOG << "The left tree contain: \n";
             for (auto i : lpts) {
                 i->pt.print();
-                LOG << " -> ";
+                CPDD_LOG << " -> ";
             }
-            LOG << "\n The right tree contain: \n";
+            CPDD_LOG << "\n The right tree contain: \n";
             for (auto i : rpts) {
                 i->pt.print();
-                LOG << " -> ";
+                CPDD_LOG << " -> ";
             }
         }
         // if (intersect_box(T->Left()->Box(), T->Right()->Box(), 1e-9)) {
-        //     LOG << ">>>>>>>>> ";
-        //     LOG << std::setprecision(6) << T->Left()->Box().first << "->" << T->Left()->Box().second << ENDL;
-        //     LOG << std::setprecision(6) << T->Right()->Box().first << "->" << T->Right()->Box().second << ENDL;
+        //     CPDD_LOG << ">>>>>>>>> ";
+        //     CPDD_LOG << std::setprecision(6) << T->Left()->Box().first << "->" << T->Left()->Box().second << ENDL;
+        //     CPDD_LOG << std::setprecision(6) << T->Right()->Box().first << "->" << T->Right()->Box().second << ENDL;
         // }
         // assert(!intersect_box(T->Left()->Box(), T->Right()->Box(), 1e-9));
         return merged_box;
@@ -656,7 +656,7 @@ struct k_nearest_neighbors {
             if (first) {
                 first = false;
             } else {
-                // LOG << n << ENDL;
+                // CPDD_LOG << n << ENDL;
                 auto P = parlay::tabulate(n, [&](size_t i) -> vtx* { return &In[i]; });
                 boxs[idx++] = tree::get_box(P);
                 return;
@@ -675,7 +675,7 @@ struct k_nearest_neighbors {
         auto [Out, m] = parlay::internal::split_two(In, flag);
 
         assert(Out.size() == n);
-        // LOG << dim << " " << Out[0] << Out[m] << ENDL;
+        // CPDD_LOG << dim << " " << Out[0] << Out[m] << ENDL;
 
         parlay::par_do_if(
             0, [&]() { recurse_box(Out.cut(0, m), boxs, DIM, range, idx, recNum, 0); },

@@ -261,7 +261,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
         // for( int i = 0; i < 10; i++ ) {
         //   boxs[i].first.print();
         //   boxs[i].second.print();
-        //   LOG << ENDL;
+        //   CPDD_LOG << ENDL;
         // }
         // return;
 
@@ -416,7 +416,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
             T = knn_tree(vin2, whole_box);
 
             root = T.tree.get();
-            // LOG << n << " " << root->size() << ENDL;
+            // CPDD_LOG << n << " " << root->size() << ENDL;
 
             size_t l = sz, r = 0;
             while (l < n) {
@@ -431,7 +431,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
                 l = r;
             }
 
-            // LOG << root->depth() << ENDL;
+            // CPDD_LOG << root->depth() << ENDL;
 
             aveQuery = time_loop(
                 rounds, 1.0, [&]() {},
@@ -584,32 +584,32 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
                 auto depth_histo = parlay::histogram_by_key(depth_arr.cut(0, idx));
                 parlay::sort_inplace(size_histo, [&](auto &a, auto &b) { return a.first < b.first; });
                 parlay::sort_inplace(depth_histo, [&](auto &a, auto &b) { return a.first < b.first; });
-                LOG << wp[0].size() << " " << t.total_time() << ENDL;
-                LOG << "tree size: " << ENDL;
+                CPDD_LOG << wp[0].size() << " " << t.total_time() << ENDL;
+                CPDD_LOG << "tree size: " << ENDL;
                 for (auto i : size_histo) {
-                    LOG << i.first << " " << i.second << ENDL;
+                    CPDD_LOG << i.first << " " << i.second << ENDL;
                 }
-                LOG << "tree depth: " << ENDL;
+                CPDD_LOG << "tree depth: " << ENDL;
                 for (auto i : depth_histo) {
-                    LOG << i.first << " " << i.second << ENDL;
+                    CPDD_LOG << i.first << " " << i.second << ENDL;
                 }
-                LOG << "--------------------" << ENDL;
+                CPDD_LOG << "--------------------" << ENDL;
             };
 
             // NOTE: test the knn time
             auto zdtreeKNN = [&](const int kth, auto pts) {
-                LOG << ">>> knn: ";
+                CPDD_LOG << ">>> knn: ";
                 // BUG: 100724349
                 auto aveQuery = time_loop(
                     rounds, -1.0, [&]() {},  // NOTE: too long, only run once
                     [&]() {
                         if (algorithm_version == 0) {
                             // parlay::sequence<vtx *> vr = T.vertices();
-                            // LOG << k << " " << vr.size() << ENDL;
+                            // CPDD_LOG << k << " " << vr.size() << ENDL;
                             size_t n = pts.size();
                             parlay::parallel_for(0, n, [&](size_t i) {
                                 // for (int i = 100724349; i < n; i++) {
-                                // if (i % 1000000 == 0) LOG << i << ENDL;
+                                // if (i % 1000000 == 0) CPDD_LOG << i << ENDL;
                                 T.k_nearest(pts[i], kth);
                                 visNodeNum[i] = pts[i]->counter + pts[i]->counter2;
                                 // }
@@ -628,7 +628,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
             size_t cnt = wp[0].size();
             // zdtreeKNN(10, all_points.cut(0, osm_query_num));
             T.verifyBoundindBox(T.tree.get());
-            LOG << "here" << ENDL;
+            CPDD_LOG << "here" << ENDL;
 
             for (int i = 1; i < time_period_num; i++) {
                 t.reset(), t.start();
@@ -639,7 +639,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
                 bd = T.get_box_delta(dims);
                 T.batch_insert(wp[i], root, bd.first, bd.second);
                 t.stop();
-                LOG << node_by_time[i].size() << " " << t.total_time() << ENDL;
+                CPDD_LOG << node_by_time[i].size() << " " << t.total_time() << ENDL;
 
                 // NOTE: test the knn time
                 // verifyZdtreeInfo();
@@ -652,7 +652,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
         };
 
         if (queryType & (1 << 11)) {  // NOTE: by year
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
             string osm_prefix = "/data/path/kdtree/real_world/osm/year/";
             const std::vector<std::string> files = {"2014", "2015", "2016", "2017", "2018",
                                                     "2019", "2020", "2021", "2022", "2023"};
@@ -691,7 +691,7 @@ void ANN(parlay::sequence<vtx> &v, int k, int rounds, parlay::sequence<vtx> &vin
         }
 
         if (queryType & (1 << 12)) {  // NOTE: by month
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
             string osm_prefix = "/data/path/kdtree/real_world/osm/month/";
             const std::vector<std::string> files = {"2014", "2015", "2016", "2017", "2018",
                                                     "2019", "2020", "2021", "2022", "2023"};

@@ -321,14 +321,14 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
                             cgknn[s] = std::distance(_ans.begin() + s * maxSize, it);
                         },
                         [&]() {});
-                    LOG << aveQuery << ENDL;
-                    // LOG << queryBox[s].second << " " << std::scientific << aveQuery << ENDL;
+                    CPDD_LOG << aveQuery << ENDL;
+                    // CPDD_LOG << queryBox[s].second << " " << std::scientific << aveQuery << ENDL;
                 }
             }
         };
 
         if (summary == 0) {
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
             const int type[3] = {0, 1, 2};
             for (int i = 0; i < 3; i++) {
                 run_cgal_range_query(type[i]);
@@ -441,12 +441,12 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
             }
         }
         for (int i = 0; i < fileNum; i++) {
-            LOG << pts[i].size() << " ";
+            CPDD_LOG << pts[i].size() << " ";
             timer.reset(), timer.start();
             tree.insert(pts[i].begin() + input_offset, pts[i].end());
             tree.template build<CGAL::Parallel_tag>();
             timer.stop();
-            LOG << timer.total_time() << " ";
+            CPDD_LOG << timer.total_time() << " ";
 
             if (within_num == sliding_window_len) {
                 timer.reset(), timer.start();
@@ -454,10 +454,10 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
                     tree.remove(pts[i - within_num][j]);
                 }
                 timer.stop();
-                LOG << timer.total_time() << " ";
+                CPDD_LOG << timer.total_time() << " ";
             } else {
                 within_num++;
-                LOG << "-1 ";
+                CPDD_LOG << "-1 ";
             }
 
             if (fileNum < 12) {
@@ -473,7 +473,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
             //     queryPointCgal(K, tmp);
             // }
 
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
         }
     };
 
@@ -489,7 +489,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
         auto clean = [&]() {
             prefix = insertFile.substr(0, insertFile.rfind("/"));
             // prefix = insertFileBack.substr(0, insertFileBack.rfind("/"));
-            // LOG << insertFile << " " << insertFileBack << " " << prefix << ENDL;
+            // CPDD_LOG << insertFile << " " << insertFileBack << " " << prefix << ENDL;
             np.clear();
             nq.clear();
         };
@@ -511,7 +511,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
         tree.template build<CGAL::Parallel_tag>();
         timer.reset();
         timer.start();
-        LOG << "finish build the tree" << ENDL;
+        CPDD_LOG << "finish build the tree" << ENDL;
         parlay::sequence<size_t> visNodeNum(KnnSize, 0);
         tbb::parallel_for(tbb::blocked_range<std::size_t>(0, KnnSize), [&](const tbb::blocked_range<std::size_t>& r) {
             for (std::size_t s = r.begin(); s != r.end(); ++s) {
@@ -531,7 +531,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
     }
 
     if (queryType & (1 << 11)) {  // NOTE: osm by year
-        LOG << ENDL;
+        CPDD_LOG << ENDL;
 
         // WARN: remember using double
         string osm_prefix = "/data/zmen002/kdtree/real_world/osm/year/";
@@ -544,7 +544,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
             read_points(path.c_str(), node_by_year[i], K);
         }
 
-        LOG << "after read osm" << ENDL;
+        CPDD_LOG << "after read osm" << ENDL;
 
         std::vector<std::vector<Point_d>> pts(files.size());
         for (int i = 0; i < files.size(); i++) {
@@ -554,7 +554,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
             });
         }
 
-        // LOG << " after generate points " << ENDL;
+        // CPDD_LOG << " after generate points " << ENDL;
         delete[] cgknn;
         cgknn = new Typename[batchQueryOsmSize];
         insertOsmByTimaCgal(pts);
@@ -569,7 +569,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
     }
 
     if (queryType & (1 << 12)) {  // NOTE: osm by month
-        LOG << ENDL;
+        CPDD_LOG << ENDL;
         // WARN: remember using double
         string osm_prefix = "/data/path/kdtree/real_world/osm/month/";
         const std::vector<std::string> files = {"2014", "2015", "2016", "2017", "2018",
@@ -608,7 +608,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
     }
 
     if (queryType & (1 << 16)) {  // NOTE: osm merge
-        LOG << ENDL;
+        CPDD_LOG << ENDL;
 
         // WARN: remember using double
         string osm_prefix = "/data3/zmen002/kdtree/real_world/osm/year/";
@@ -620,7 +620,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
             read_points(path.c_str(), node_by_year[i], K);
         }
 
-        // LOG << "after read osm" << ENDL;
+        // CPDD_LOG << "after read osm" << ENDL;
 
         /*std::vector<std::vector<Point_d>> pts(files.size());*/
         /*for (int i = 0; i < files.size(); i++) {*/
@@ -630,7 +630,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
         /*    });*/
         /*}*/
 
-        // LOG << " after generate points " << ENDL;
+        // CPDD_LOG << " after generate points " << ENDL;
         auto all_points = parlay::flatten(node_by_year);
         std::vector<Point_d> all_pts(all_points.size());
         parlay::parallel_for(0, all_points.size(), [&](size_t j) {
@@ -643,7 +643,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
         t.start();
         tree.template build<CGAL::Parallel_tag>();
         t.stop();
-        LOG << t.total_time() << " " << tree.root()->depth() << " " << std::flush;
+        CPDD_LOG << t.total_time() << " " << tree.root()->depth() << " " << std::flush;
 
         delete[] cgknn;
         cgknn = new Typename[all_points.size()];
@@ -661,7 +661,7 @@ void testCGALParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int 
             std::ranges::swap(buildDist, queryDist);
         }
         read_path.replace(read_path.find(buildDist), buildDist.length(), queryDist);
-        // LOG << read_path << ENDL;
+        // CPDD_LOG << read_path << ENDL;
 
         points query_points;
         read_points(read_path.c_str(), query_points, K);

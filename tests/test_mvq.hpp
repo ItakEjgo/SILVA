@@ -742,7 +742,7 @@ namespace ZDTest{
 
 
     template<typename PT>
-    void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios){
+    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios){
 	    auto n = P_base.size();
 
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
@@ -803,7 +803,7 @@ namespace ZDTest{
 
     template<typename PT>
     void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios){
-	    auto n = P_base.size();
+	    
 
 	    mvq::Tree zdtree(mvq::Config::get().leaf_size);
 	    auto P_set = get_sorted_points(P_base); // build original tree

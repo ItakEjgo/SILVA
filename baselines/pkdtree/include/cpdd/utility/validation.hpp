@@ -12,7 +12,7 @@ bool ParallelKDtree<point>::checkBox(node* T, const box& bx) {
     points wx = points::uninitialized(T->size);
     flatten(T, parlay::make_slice(wx));
     auto b = get_box(parlay::make_slice(wx));
-    // LOG << b.first << b.second << ENDL;
+    // CPDD_LOG << b.first << b.second << ENDL;
     return within_box(b, bx);
 }
 
@@ -36,7 +36,7 @@ void ParallelKDtree<point>::checkTreeSameSequential(node* T, int dim, const int&
     }
     interior* TI = static_cast<interior*>(T);
     if (TI->split.second != dim) {
-        LOG << int(TI->split.second) << " " << int(dim) << TI->size << ENDL;
+        CPDD_LOG << int(TI->split.second) << " " << int(dim) << TI->size << ENDL;
     }
     assert(TI->split.second == dim);
     dim = (dim + 1) % DIM;
@@ -95,7 +95,7 @@ double ParallelKDtree<point>::getAveTreeHeight() {
     // std::sort( kv.begin(), kv.end(),
     //            [&]( auto a, auto b ) { return a.first < b.first; } );
     // for ( auto i : kv )
-    //     LOG << i.first << " " << i.second << ENDL;
+    //     CPDD_LOG << i.first << " " << i.second << ENDL;
     return double(1.0 * parlay::reduce(heights.cut(0, idx)) / idx);
 }
 

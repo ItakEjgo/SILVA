@@ -22,7 +22,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
 
     // auto boxs = gen_rectangles<point>( 1000, 2, wp, Dim );
     // for ( int i = 0; i < 10; i++ ) {
-    //   LOG << boxs[i].first << " " << boxs[i].second << ENDL;
+    //   CPDD_LOG << boxs[i].first << " " << boxs[i].second << ENDL;
     // }
     // return;
 
@@ -33,7 +33,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
 
     tree pkd;
 
-    // LOG << "inba: " << pkd.get_imbalance_ratio() << ENDL;
+    // CPDD_LOG << "inba: " << pkd.get_imbalance_ratio() << ENDL;
 
     points wi;
     if (readInsertFile && insertFile != "") {
@@ -122,7 +122,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
             int recNum = rangeQueryNum;
             kdknn = new Typename[recNum];
             const int type[3] = {0, 1, 2};
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
             for (int i = 0; i < 3; i++) {
                 rangeCountFixWithLog<point>(wp, pkd, kdknn, singleQueryLogRepeatNum, type[i], recNum, Dim);
             }
@@ -142,7 +142,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
             int recNum = rangeQueryNum;
             const int type[3] = {0, 1, 2};
 
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
             for (int i = 0; i < 3; i++) {
                 //* run range count to obtain size
                 kdknn = new Typename[recNum];
@@ -301,7 +301,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
 
         read_points(uniform_path.c_str(), up, K);
 
-        LOG << "alpha: " << pkd.get_imbalance_ratio() << ENDL;
+        CPDD_LOG << "alpha: " << pkd.get_imbalance_ratio() << ENDL;
         // HACK: need start with varden file
         // NOTE: 1: 10*0.1 different vardens.
 
@@ -356,7 +356,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
         parlay::sequence<points> node_by_year(files.size());
         for (int i = 0; i < files.size(); i++) {
             std::string path = osm_prefix + "osm_" + files[i] + ".csv";
-            // LOG << path << ENDL;
+            // CPDD_LOG << path << ENDL;
             points input_node;
             read_points(path.c_str(), node_by_year[i], K);
         }
@@ -394,13 +394,13 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
         // const parlay::sequence<double> ratios = {1e-9, 2e-9, 5e-9, 1e-8, 2e-8, 5e-8, 1e-7, 2e-7, 5e-7, 1e-6, 2e-6,
         //                                          5e-6, 1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2};
         const parlay::sequence<double> ratios = {1e-9, 2e-9};
-        LOG << ENDL << "serial ";
+        CPDD_LOG << ENDL << "serial ";
         batchInsert<point, true>(pkd, wp, wi, Dim, rounds, *ratios.rbegin());
-        LOG << ENDL;
+        CPDD_LOG << ENDL;
         /*for (int i = 0; i < ratios.size(); i++) {*/
-        /*    LOG << wi.size() * ratios[i] << " ";*/
+        /*    CPDD_LOG << wi.size() * ratios[i] << " ";*/
         /*    batchUpdateByStep<point, true>(pkd, wp, wi, Dim, rounds, ratios[i], *ratios.rbegin());*/
-        /*    LOG << ENDL;*/
+        /*    CPDD_LOG << ENDL;*/
         /*}*/
     }
 
@@ -408,13 +408,13 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
         // NOTE: first insert in serial one bu one
         const parlay::sequence<double> ratios = {1e-9, 2e-9, 5e-9, 1e-8, 2e-8, 5e-8, 1e-7, 2e-7, 5e-7, 1e-6, 2e-6,
                                                  5e-6, 1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2};
-        // LOG << ENDL << "serial ";
+        // CPDD_LOG << ENDL << "serial ";
         // batchDelete<point, true>(pkd, wp, wi, Dim, rounds, false, *ratios.rbegin());
-        // LOG << ENDL;
+        // CPDD_LOG << ENDL;
         for (int i = 0; i < ratios.size(); i++) {
-            LOG << wi.size() * ratios[i] << " ";
+            CPDD_LOG << wi.size() * ratios[i] << " ";
             batchUpdateByStep<point, false>(pkd, wp, wp, Dim, rounds, ratios[i], *ratios.rbegin());
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
         }
     }
 
@@ -431,8 +431,8 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
                 query_box.second.pnt[i] = kDistanceRatio * width[i] + input_box.second.pnt[i];
             }
 
-            LOG << "input box: " << input_box.first << " " << input_box.second << ENDL;
-            LOG << "query box: " << query_box.first << " " << query_box.second << ENDL;
+            CPDD_LOG << "input box: " << input_box.first << " " << input_box.second << ENDL;
+            CPDD_LOG << "query box: " << query_box.first << " " << query_box.second << ENDL;
 
             size_t kQueryNum = wp.size() * knnBatchInbaRatio;
             points wq(kQueryNum);
@@ -448,12 +448,12 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
             incrementalBuildAndQuery<point, true>(Dim, wp, rounds, pkd, insertBatchInbaRatio, wq);
         };
 
-        LOG << "alpha: " << pkd.get_imbalance_ratio() << ENDL;
-        LOG << "distance ratio: " << 0 << ENDL;
+        CPDD_LOG << "alpha: " << pkd.get_imbalance_ratio() << ENDL;
+        CPDD_LOG << "distance ratio: " << 0 << ENDL;
         run(0);
-        LOG << "distance ratio: " << 10 << ENDL;
+        CPDD_LOG << "distance ratio: " << 10 << ENDL;
         run(10);
-        LOG << "distance ratio: " << 100 << ENDL;
+        CPDD_LOG << "distance ratio: " << 100 << ENDL;
         run(100);
     }
 
@@ -471,14 +471,14 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
         // NOTE: flatten inputs
         auto all_points = parlay::flatten(node_by_year);
         // writeToFile(all_points, "/data3/zmen002/kdtree/geometry/osm.in");
-        // LOG << all_points.size() << ENDL;
+        // CPDD_LOG << all_points.size() << ENDL;
         // return;
 
         for (int i = 0; i < files.size(); i++) {
             points().swap(node_by_year[i]);
         }
         decltype(node_by_year)().swap(node_by_year);
-        LOG << all_points.size() << ENDL;
+        CPDD_LOG << all_points.size() << ENDL;
         buildTree(Dim, all_points, rounds, pkd);
 
         // NOTE: run knn
@@ -497,7 +497,7 @@ void testParallelKDtree(const int& Dim, const int& LEAVE_WRAP, parlay::sequence<
             std::ranges::swap(buildDist, queryDist);
         }
         read_path.replace(read_path.find(buildDist), buildDist.length(), queryDist);
-        // LOG << read_path << ENDL;
+        // CPDD_LOG << read_path << ENDL;
 
         points query_points;
         read_points(read_path.c_str(), query_points, K);

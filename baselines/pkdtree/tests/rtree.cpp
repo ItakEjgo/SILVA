@@ -194,13 +194,13 @@ void testRtreeParallel(int Dim, int LEAVE_WRAP, parlay::sequence<point>& wp, int
                             tree.query(bgi::within(query_box), std::back_inserter(range_results));
                         },
                         [&]() {});
-                    // LOG << queryBox[s].second << " " << std::scientific << aveQuery << ENDL;
+                    // CPDD_LOG << queryBox[s].second << " " << std::scientific << aveQuery << ENDL;
                 }
             }
         };
 
         if (summary == 0) {
-            LOG << ENDL;
+            CPDD_LOG << ENDL;
             const int type[3] = {0, 1, 2};
             for (int i = 0; i < 3; i++) {
                 run_cgal_range_query(type[i]);
