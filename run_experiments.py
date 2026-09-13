@@ -396,12 +396,9 @@ class SilvaExperimentRunner:
     def run_batch_insert_experiment(self):
         self.run_batch_experiment("batch-insert", "insert")
 
-    def run_batch_delete_experiment(self):
-        self.run_batch_experiment("batch-delete", "delete")
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SILVA Automated Experiment Framework")
-    parser.add_argument("--task", choices=["build", "insert", "delete", "query", "all"], required=True, help="Experiment task to run")
+    parser.add_argument("--task", choices=["build", "insert", "delete", "update", "query", "all"], required=True, help="Experiment task to run")
     parser.add_argument("--threads", type=int, default=None, help="Restrict to N threads (uses taskset -c 0 to N-1 if specified)")
     parser.add_argument("--ratios", type=str, default=None, help="Comma-separated batch ratios (e.g., '0.01,0.1,0.25,0.5,1.0')")
     parser.add_argument("--dataset-base", type=str, default=None, help="Specific base dataset file (e.g. dataset/uniform/10M_2_1.in)")
@@ -420,9 +417,9 @@ if __name__ == "__main__":
     
     if args.task in ["build", "all"]:
         runner.run_build_experiment()
-    if args.task in ["insert", "all"]:
+    if args.task in ["insert", "update", "all"]:
         runner.run_batch_insert_experiment()
-    if args.task in ["delete", "all"]:
+    if args.task in ["delete", "update", "all"]:
         runner.run_batch_delete_experiment()
     if args.task in ["query", "all"]:
         runner.run_query_experiment()
