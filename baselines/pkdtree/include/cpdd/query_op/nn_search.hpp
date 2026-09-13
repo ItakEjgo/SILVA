@@ -52,7 +52,8 @@ inline typename ParallelKDtree<point>::coord ParallelKDtree<point>::interruptibl
                                                                                            dim_type DIM) {
     coord r = 0;
     dim_type i = 0;
-    if (DIM >= 6) {
+    if constexpr (std::tuple_size_v<decltype(p.pnt)> >= 6) {
+        if (DIM >= 6) {
         while (1) {
             r += (p.pnt[i] - q.pnt[i]) * (p.pnt[i] - q.pnt[i]);
             i++;
@@ -70,6 +71,7 @@ inline typename ParallelKDtree<point>::coord ParallelKDtree<point>::interruptibl
                 break;
             }
         }
+        }
     }
     while (i < DIM) {
         r += (p.pnt[i] - q.pnt[i]) * (p.pnt[i] - q.pnt[i]);
@@ -86,7 +88,7 @@ void ParallelKDtree<point>::k_nearest(node* T, const point& q, const dim_type DI
 
     if (T->is_leaf) {
         leaf* TL = static_cast<leaf*>(T);
-        int i = 0;
+        size_t i = 0;
         while (!bq.full() && i < TL->size) {
             if (filter(TL->pts[(!TL->is_dummy) * i])) {
                 bq.insert(std::make_pair(std::ref(TL->pts[(!TL->is_dummy) * i]),

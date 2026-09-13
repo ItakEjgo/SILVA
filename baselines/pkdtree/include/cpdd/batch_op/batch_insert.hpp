@@ -119,7 +119,7 @@ typename ParallelKDtree<point>::node* ParallelKDtree<point>::batchInsert_recusiv
             if (TL->pts.size() == 0) {
                 TL->pts = points::uninitialized(LEAVE_WRAP);
             }
-            for (int i = 0; i < n; i++) {
+            for (size_t i = 0; i < n; i++) {
                 TL->pts[TL->size + i] = In[i];
             }
             TL->size += n;
@@ -167,7 +167,7 @@ typename ParallelKDtree<point>::node* ParallelKDtree<point>::batchInsert_recusiv
         0, IT.tagsNum,
         [&](size_t i) {
             size_t s = 0;
-            for (int j = 0; j < i; j++) {
+            for (size_t j = 0; j < i; j++) {
                 s += IT.sums_tree[IT.rev_tag[j]];
             }
 

@@ -154,16 +154,6 @@ typename ParallelKDtree<point>::node* ParallelKDtree<point>::serial_build_recurs
     if (n == 0) return alloc_empty_leaf();
     if (n <= LEAVE_WRAP) return alloc_leaf_node(In);
 
-    auto parallel_partition = [&](slice In, dim_type d) {
-        auto cmp = [&](const point& p1, const point& p2) { return Num::Lt(p1.pnt[d], p2.pnt[d]); };
-        auto iter_pivot = parlay::kth_smallest(In, n / 2, cmp);
-        auto iter_min = parlay::kth_smallest(In, 0, cmp);
-        auto ucmp = *iter_pivot == *iter_min ? &Num::Leq : &Num::Lt;
-        auto res = parlay::internal::split_two(
-            In, parlay::delayed_seq<bool>(n, [&](const point& p) { return (*ucmp)(p.pnt[d], iter_pivot->pnt[d]); }));
-        parlay::copy(std::move(res.first), In);
-        return In.begin() + res.second;
-    };
 
     dim_type d = (_split_rule == MAX_STRETCH_DIM ? pick_max_stretch_dim(bx, DIM) : dim);
     // points_iter splitIter =
