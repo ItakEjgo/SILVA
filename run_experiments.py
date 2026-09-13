@@ -400,10 +400,17 @@ if __name__ == "__main__":
     parser.add_argument("--task", choices=["build", "insert", "delete", "query", "all"], required=True, help="Experiment task to run")
     parser.add_argument("--threads", type=int, default=None, help="Restrict to N threads (uses taskset -c 0 to N-1 if specified)")
     parser.add_argument("--ratios", type=str, default=None, help="Comma-separated batch ratios (e.g., '0.01,0.1,0.25,0.5,1.0')")
+    parser.add_argument("--dataset-base", type=str, default=None, help="Specific base dataset file (e.g. dataset/uniform/10M_2_1.in)")
+    parser.add_argument("--dataset-update", type=str, default=None, help="Specific update dataset file for batch ops (e.g. dataset/uniform/10M_2_2.in)")
     
     args = parser.parse_args()
     
-    runner = SilvaExperimentRunner(threads=args.threads, ratios=args.ratios)
+    runner = SilvaExperimentRunner(
+        threads=args.threads,
+        ratios=args.ratios,
+        dataset_base=args.dataset_base,
+        dataset_update=args.dataset_update
+    )
     
     if args.task in ["build", "all"]:
         runner.run_build_experiment()
