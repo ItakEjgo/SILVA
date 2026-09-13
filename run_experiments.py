@@ -6,11 +6,12 @@ import argparse
 from datetime import datetime
 
 class SilvaExperimentRunner:
-    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None):
+    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None, snapshot_ratio="0.2"):
         self.threads = threads
         self.ratios = ratios
         self.dataset_base_file = dataset_base
         self.dataset_update_file = dataset_update
+        self.snapshot_ratio = snapshot_ratio
         self.base_dir = "."
         self.binary_path = "build/main"
         self.datasets_dir = "dataset"
@@ -233,7 +234,9 @@ class SilvaExperimentRunner:
                 for algo in self.algorithms:
                     cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
                     if self.ratios:
-                        cmd.extend(["-br", self.ratios, "-p", "0.2"])
+                        cmd.extend(["-br", self.ratios])
+                    if self.snapshot_ratio:
+                        cmd.extend(["-p", str(self.snapshot_ratio)])
                     output = self.run_command(cmd, timeout=1800)
                     audit_log_path = os.path.join(self.results_dir, f"audit_log_{task_name}{suffix}_{timestamp}.txt")
                     with open(audit_log_path, 'a') as af:
@@ -402,6 +405,7 @@ if __name__ == "__main__":
     parser.add_argument("--ratios", type=str, default=None, help="Comma-separated batch ratios (e.g., '0.01,0.1,0.25,0.5,1.0')")
     parser.add_argument("--dataset-base", type=str, default=None, help="Specific base dataset file (e.g. dataset/uniform/10M_2_1.in)")
     parser.add_argument("--dataset-update", type=str, default=None, help="Specific update dataset file for batch ops (e.g. dataset/uniform/10M_2_2.in)")
+    parser.add_argument("--snapshot-ratio", type=str, default="0.2", help="Snapshot ratio parameter (-p) passed to binary (default: 0.2)")
     
     args = parser.parse_args()
     
@@ -409,7 +413,8 @@ if __name__ == "__main__":
         threads=args.threads,
         ratios=args.ratios,
         dataset_base=args.dataset_base,
-        dataset_update=args.dataset_update
+        dataset_update=args.dataset_update,
+        snapshot_ratio=args.snapshot_ratio
     )
     
     if args.task in ["build", "all"]:
