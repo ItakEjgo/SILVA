@@ -15,8 +15,8 @@ class SilvaExperimentRunner:
         self.results_dir = "results_experiments"
         
         self.distributions = ["uniform"]
-        self.sizes = ["1M"]
-        self.algorithms = ["mvq", "pacz"]
+        self.sizes = ["1M", "10M", "20M", "30M", "40M", "50M"]
+        self.algorithms = ["mvq", "pacz", "boost", "rlog", "pkdtree", "pkdlog"]
         
         os.makedirs(self.results_dir, exist_ok=True)
 
