@@ -147,12 +147,14 @@ class SilvaExperimentRunner:
                 dist = row["Distribution"]
                 size = row["Size"]
                 algo = row["Algorithm"]
+                threads = row.get("Threads", "ALL")
+                algo_label = f"{algo} (T={threads})"
                 time_s = float(row["Build_Time_Seconds"])
                 mem_mb = row["Memory_MB"]
                 
-                time_data[dist][size].append((algo, time_s))
+                time_data[dist][size].append((algo_label, time_s))
                 if mem_mb not in ["N/A", "PARSE_ERROR"]:
-                    mem_data[dist][size].append((algo, float(mem_mb)))
+                    mem_data[dist][size].append((algo_label, float(mem_mb)))
 
         import os
         plot_dir = os.path.join(self.results_dir, "build_plots")
@@ -284,7 +286,7 @@ class SilvaExperimentRunner:
                                 if t_str and m_str:
                                     t_arr = [float(x) for x in t_str.split(',') if x]
                                     m_arr = [float(x) for x in m_str.split(',') if x]
-                                    self.plot_single_ratio(task_name, dist, size, algo, batch_size, t_arr, m_arr)
+                                    self.plot_single_ratio(task_name, dist, size, algo, batch_size, threads_str, t_arr, m_arr)
 
                     if not res_list:
                         writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR", "N/A"])
@@ -297,8 +299,7 @@ class SilvaExperimentRunner:
                     
         self.plot_results(csv_path, task_name)
         print(f"=== {task_name.upper()} Experiment Completed ===")
-
-    def plot_single_ratio(self, task_name, dist, size, algo, ratio, times, mems):
+    def plot_single_ratio(self, task_name, dist, size, algo, ratio, threads, times, mems):
         try:
             import matplotlib.pyplot as plt
         except ImportError:
@@ -321,8 +322,7 @@ class SilvaExperimentRunner:
         ax2.set_ylabel('Memory (MB)', color=color)  
         ax2.plot(range(1, len(mems) + 1), mems, color=color, marker='s', markersize=3, label='Memory (MB)')
         ax2.tick_params(axis='y', labelcolor=color)
-        
-        plt.title(f'{task_name.capitalize()} Per-Batch - {algo} (Ratio={ratio}, {dist}-{size})')
+        plt.title(f'{task_name.capitalize()} Per-Batch - {algo} (T={threads}, Ratio={ratio}, {dist}-{size})')
         fig.tight_layout()
         
         out_png = os.path.join(plot_dir, f'{task_name}_{algo}_ratio{ratio}_{dist}_{size}.png')
@@ -348,13 +348,15 @@ class SilvaExperimentRunner:
                 if row["Batch_Size"] == "N/A": continue
                 ds = f'{row["Distribution"]}-{row["Size"]}'
                 algo = row["Algorithm"]
+                threads = row.get("Threads", "ALL")
+                algo_label = f"{algo} (T={threads})"
                 batch = float(row["Batch_Size"])
                 time_s = float(row[time_col])
                 mem_mb = row["Memory_MB"]
                 
-                time_data[ds][algo].append((batch, time_s))
+                time_data[ds][algo_label].append((batch, time_s))
                 if mem_mb != "N/A" and mem_mb != "PARSE_ERROR":
-                    mem_data[ds][algo].append((batch, float(mem_mb)))
+                    mem_data[ds][algo_label].append((batch, float(mem_mb)))
 
         import os
         for ds, algos in time_data.items():
