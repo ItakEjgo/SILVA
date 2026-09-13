@@ -396,6 +396,9 @@ class SilvaExperimentRunner:
     def run_batch_insert_experiment(self):
         self.run_batch_experiment("batch-insert", "insert")
 
+    def run_batch_delete_experiment(self):
+        self.run_batch_experiment("batch-delete", "delete")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SILVA Automated Experiment Framework")
     parser.add_argument("--task", choices=["build", "insert", "delete", "update", "query", "all"], required=True, help="Experiment task to run")
