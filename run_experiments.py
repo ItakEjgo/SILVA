@@ -33,14 +33,15 @@ class SilvaExperimentRunner:
                     db = f"{self.datasets_dir}/{dist}/{size}_2_1.in"
                     du = f"{self.datasets_dir}/{dist}/{size}_2_2.in"
                     yield (dist, size, db, du)
-
     def run_command(self, cmd, timeout=1800):
         # Apply thread restrictions
         env = os.environ.copy()
         if self.threads is not None:
             env["PARLAY_NUM_THREADS"] = str(self.threads)
             env["OMP_NUM_THREADS"] = str(self.threads)
-            cmd = ["taskset", "-c", "0"] + cmd
+            # Bind to cores 0 to (threads-1)
+            core_range = f"0-{self.threads - 1}" if self.threads > 1 else "0"
+            cmd = ["taskset", "-c", core_range] + cmd
 
         print(f"  [RUN] {' '.join(cmd)}")
         try:
