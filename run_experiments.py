@@ -6,9 +6,11 @@ import argparse
 from datetime import datetime
 
 class SilvaExperimentRunner:
-    def __init__(self, threads=None, ratios=None):
+    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None):
         self.threads = threads
         self.ratios = ratios
+        self.dataset_base_file = dataset_base
+        self.dataset_update_file = dataset_update
         self.base_dir = "."
         self.binary_path = "build/main"
         self.datasets_dir = "dataset"
@@ -18,6 +20,18 @@ class SilvaExperimentRunner:
         self.results_dir = "results_experiments"
         
         os.makedirs(self.results_dir, exist_ok=True)
+
+    def get_datasets(self):
+        if self.dataset_base_file:
+            dist_name = "custom"
+            size_name = "custom"
+            yield (dist_name, size_name, self.dataset_base_file, self.dataset_update_file)
+        else:
+            for dist in self.distributions:
+                for size in self.sizes:
+                    db = f"{self.datasets_dir}/{dist}/{size}_2_1.in"
+                    du = f"{self.datasets_dir}/{dist}/{size}_2_2.in"
+                    yield (dist, size, db, du)
 
     def run_command(self, cmd, timeout=1800):
         # Apply thread restrictions
@@ -85,29 +99,28 @@ class SilvaExperimentRunner:
             writer = csv.writer(f)
             writer.writerow(["Distribution", "Size", "Algorithm", "Threads", "Build_Time_Seconds", "Memory_MB"])
             
-            for dist in self.distributions:
-                for size in self.sizes:
-                    dataset_base = f"{self.datasets_dir}/{dist}/{size}_2_1.in"
-                    if not os.path.exists(dataset_base):
-                        continue
+            for dist, size, dataset_base, _ in self.get_datasets():
+                if not dataset_base or not os.path.exists(dataset_base):
+                    print(f"File not found: {dataset_base}")
+                    continue
                         
-                    print(f"\n--- Testing Dataset: {dist} - {size} ---")
-                    for algo in self.algorithms:
-                        cmd = [self.binary_path, "-t", "build", "-a", algo, "-i", dataset_base]
-                        output = self.run_command(cmd, timeout=300)
-                        audit_log_path = os.path.join(self.results_dir, f"audit_log_build{suffix}_{timestamp}.txt")
-                        with open(audit_log_path, 'a') as af:
-                            af.write(f"\n{'='*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CMD: {' '.join(cmd)}\n{'='*60}\n")
-                            if output: af.write(output + "\n")
-                         # Increased timeout for single core 50M
-                        
-                        time_s = self.parse_time(output, "build")
-                        mem_mb = self.parse_memory(output)
-                        threads_str = str(self.threads) if self.threads else "ALL"
-                        writer.writerow([dist, size, algo, threads_str, time_s, mem_mb])
-                        f.flush()
-                        print(f"  -> Result: {time_s}s")
-                        
+                print(f"\n--- Testing Dataset: {dist} - {size} ---")
+                for algo in self.algorithms:
+                    cmd = [self.binary_path, "-t", "build", "-a", algo, "-i", dataset_base]
+                    output = self.run_command(cmd, timeout=300)
+                    audit_log_path = os.path.join(self.results_dir, f"audit_log_build{suffix}_{timestamp}.txt")
+                    with open(audit_log_path, 'a') as af:
+                        af.write(f"\n{'='*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CMD: {' '.join(cmd)}\n{'='*60}\n")
+                        if output: af.write(output + "\n")
+                     # Increased timeout for single core 50M
+                    
+                    time_s = self.parse_time(output, "build")
+                    mem_mb = self.parse_memory(output)
+                    threads_str = str(self.threads) if self.threads else "ALL"
+                    writer.writerow([dist, size, algo, threads_str, time_s, mem_mb])
+                    f.flush()
+                    print(f"  -> Result: {time_s}s")
+                    
         self.plot_build_results(csv_path)
         print(f"=== BUILD Experiment Completed ===")
 
@@ -211,75 +224,73 @@ class SilvaExperimentRunner:
             writer = csv.writer(f)
             writer.writerow(["Distribution", "Size", "Algorithm", "Threads", "Batch_Size", f"{task_name.capitalize()}_Time_Seconds", "Memory_MB"])
             
-            for dist in self.distributions:
-                for size in self.sizes:
-                    dataset_base = f"{self.datasets_dir}/{dist}/{size}_2_1.in"
-                    dataset_update = f"{self.datasets_dir}/{dist}/{size}_2_2.in"
-                    if not os.path.exists(dataset_base) or not os.path.exists(dataset_update):
-                        continue
+            for dist, size, dataset_base, dataset_update in self.get_datasets():
+                if not dataset_base or not dataset_update or not os.path.exists(dataset_base) or not os.path.exists(dataset_update):
+                    print(f"Dataset pairs not found: {dataset_base}, {dataset_update}")
+                    continue
                         
-                    print(f"\n--- Testing Dataset: {dist} - {size} ---")
-                    for algo in self.algorithms:
-                        cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
-                        if self.ratios:
-                            cmd.extend(["-br", self.ratios, "-p", "0.2"])
-                        output = self.run_command(cmd, timeout=1800)
-                        audit_log_path = os.path.join(self.results_dir, f"audit_log_{task_name}{suffix}_{timestamp}.txt")
-                        with open(audit_log_path, 'a') as af:
-                            af.write(f"\n{'='*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CMD: {' '.join(cmd)}\n{'='*60}\n")
-                            if output: af.write(output + "\n")
-                        
-                        
-                        threads_str = str(self.threads) if self.threads else "ALL"
-                        
-                        res_list = self.parse_batch_time(output, action_keyword)
-                        # Capture and plot per-batch data!
-                        batch_times_matches = re.findall(r'\[per_batch_time\]:\s*(.*)', output) if output else []
-                        batch_mems_matches = re.findall(r'\[per_batch_mem\]:\s*(.*)', output) if output else []
-                        
-                        if not batch_times_matches and output and 'step_time' in output:
-                            step_times = re.findall(r'\[step_time\]:\s*([\d\.]+)', output)
-                            step_mems = re.findall(r'\[step_mem\]:\s*([\d\.]+)', output)
-                            if step_times and step_mems:
-                                batch_times_matches = [','.join(step_times)]
-                                batch_mems_matches = [','.join(step_mems)]
+                print(f"\n--- Testing Dataset: {dist} - {size} ---")
+                for algo in self.algorithms:
+                    cmd = [self.binary_path, "-t", task_name, "-a", algo, "-i", dataset_base, "-u", dataset_update]
+                    if self.ratios:
+                        cmd.extend(["-br", self.ratios, "-p", "0.2"])
+                    output = self.run_command(cmd, timeout=1800)
+                    audit_log_path = os.path.join(self.results_dir, f"audit_log_{task_name}{suffix}_{timestamp}.txt")
+                    with open(audit_log_path, 'a') as af:
+                        af.write(f"\n{'='*60}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] CMD: {' '.join(cmd)}\n{'='*60}\n")
+                        if output: af.write(output + "\n")
+                    
+                    
+                    threads_str = str(self.threads) if self.threads else "ALL"
+                    
+                    res_list = self.parse_batch_time(output, action_keyword)
+                    # Capture and plot per-batch data!
+                    batch_times_matches = re.findall(r'\[per_batch_time\]:\s*(.*)', output) if output else []
+                    batch_mems_matches = re.findall(r'\[per_batch_mem\]:\s*(.*)', output) if output else []
+                    
+                    if not batch_times_matches and output and 'step_time' in output:
+                        step_times = re.findall(r'\[step_time\]:\s*([\d\.]+)', output)
+                        step_mems = re.findall(r'\[step_mem\]:\s*([\d\.]+)', output)
+                        if step_times and step_mems:
+                            batch_times_matches = [','.join(step_times)]
+                            batch_mems_matches = [','.join(step_mems)]
 
-                        if not batch_times_matches and output and '[per_batch_time_val]:' in output:
-                            times_vals = re.findall(r'\[per_batch_time_val\]:\s*([\d\.]+)', output)
-                            mems_vals = re.findall(r'\[per_batch_mem_val\]:\s*([\d\.]+)', output)
-                            if times_vals: batch_times_matches = [','.join(times_vals)]
-                            if mems_vals: batch_mems_matches = [','.join(mems_vals)]
+                    if not batch_times_matches and output and '[per_batch_time_val]:' in output:
+                        times_vals = re.findall(r'\[per_batch_time_val\]:\s*([\d\.]+)', output)
+                        mems_vals = re.findall(r'\[per_batch_mem_val\]:\s*([\d\.]+)', output)
+                        if times_vals: batch_times_matches = [','.join(times_vals)]
+                        if mems_vals: batch_mems_matches = [','.join(mems_vals)]
 
-                        if output in ["TIMEOUT", "CRASH", None] or (output and "[PROCESS_CRASHED" in output):
-                            writer.writerow([dist, size, algo, threads_str, "N/A", "CRASH", "OOM"])
-                            f.flush()
-                            # Do not continue, let it plot the partial data if any!
-
-                        if batch_times_matches and batch_mems_matches:
-                            ratios_matches = re.findall(r'\[Testing Ratio\]:\s*([\d\.]+)', output) if output else []
-                            # Fallback if testing ratio not found
-                            ratios_to_plot = [r[0] for r in res_list] if res_list else ratios_matches
-                            if not ratios_to_plot and self.ratios:
-                                ratios_to_plot = self.ratios.split(',')
-                            
-                            for idx, batch_size in enumerate(ratios_to_plot):
-                                if idx < len(batch_times_matches) and idx < len(batch_mems_matches):
-                                    t_str = batch_times_matches[idx].strip()
-                                    m_str = batch_mems_matches[idx].strip()
-                                    if t_str and m_str:
-                                        t_arr = [float(x) for x in t_str.split(',') if x]
-                                        m_arr = [float(x) for x in m_str.split(',') if x]
-                                        self.plot_single_ratio(task_name, dist, size, algo, batch_size, t_arr, m_arr)
-
-                        if not res_list:
-                            writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR", "N/A"])
-                        else:
-                            for batch_size, time_s, mem_val in res_list:
-                                writer.writerow([dist, size, algo, threads_str, batch_size, time_s, mem_val])
+                    if output in ["TIMEOUT", "CRASH", None] or (output and "[PROCESS_CRASHED" in output):
+                        writer.writerow([dist, size, algo, threads_str, "N/A", "CRASH", "OOM"])
                         f.flush()
-                        f.flush()
-                        print(f"  -> Parsed {len(res_list)} batch sizes.")
+                        # Do not continue, let it plot the partial data if any!
+
+                    if batch_times_matches and batch_mems_matches:
+                        ratios_matches = re.findall(r'\[Testing Ratio\]:\s*([\d\.]+)', output) if output else []
+                        # Fallback if testing ratio not found
+                        ratios_to_plot = [r[0] for r in res_list] if res_list else ratios_matches
+                        if not ratios_to_plot and self.ratios:
+                            ratios_to_plot = self.ratios.split(',')
                         
+                        for idx, batch_size in enumerate(ratios_to_plot):
+                            if idx < len(batch_times_matches) and idx < len(batch_mems_matches):
+                                t_str = batch_times_matches[idx].strip()
+                                m_str = batch_mems_matches[idx].strip()
+                                if t_str and m_str:
+                                    t_arr = [float(x) for x in t_str.split(',') if x]
+                                    m_arr = [float(x) for x in m_str.split(',') if x]
+                                    self.plot_single_ratio(task_name, dist, size, algo, batch_size, t_arr, m_arr)
+
+                    if not res_list:
+                        writer.writerow([dist, size, algo, threads_str, "N/A", "PARSE_ERROR", "N/A"])
+                    else:
+                        for batch_size, time_s, mem_val in res_list:
+                            writer.writerow([dist, size, algo, threads_str, batch_size, time_s, mem_val])
+                    f.flush()
+                    f.flush()
+                    print(f"  -> Parsed {len(res_list)} batch sizes.")
+                    
         self.plot_results(csv_path, task_name)
         print(f"=== {task_name.upper()} Experiment Completed ===")
 
