@@ -50,10 +50,10 @@ namespace PACZU{
 		static aug_t get_empty() { return make_pair(Bounding_Box{Point(1e60, 1e60), Point(-1, -1)}, 0); }
 		static aug_t from_entry(key_t k, val_t v) { return make_pair(Bounding_Box(v, v), 1); }
 		static aug_t combine(aug_t a, aug_t b) { return make_pair(merge_mbr(a.first, b.first), a.second + b.second); }
-	};
+		};
+		// using zmap = cpam::aug_map<entry, 32>;
+		using zmap = psi::cpam::aug_map<entry, 40>;
 
-	// using zmap = cpam::aug_map<entry, 32>;
-	using zmap = psi::cpam::aug_map<entry, 16>;
 	using par = std::tuple<entry::key_t, entry::val_t>;
 
 	template<class T, class MBR>
@@ -120,7 +120,7 @@ namespace PACZU{
 	}	
 
 	template<typename PT, typename M>
-	auto map_insert(PT &P, M &mmp, bool use_hilbert = false){
+		auto map_insert(PT &P, M mmp, bool use_hilbert = false){
 		size_t n = P.size();
 
 		parlay::internal::timer t("debug", false);
@@ -133,14 +133,14 @@ namespace PACZU{
 			// insert_pts[i] = {P[i]->id, P[i]};
 		});
 		t.next("init time");
-		auto m2 = zmap::multi_insert(mmp, insert_pts);
+			auto m2 = zmap::multi_insert(std::move(mmp), insert_pts);
 		t.next("insert time");
 
 		return m2;
 	}
 
 	template<typename PT, typename M>
-	auto map_delete(PT &P, M &mmp, bool use_hilbert = false){
+		auto map_delete(PT &P, M mmp, bool use_hilbert = false){
 		size_t n = P.size();
 
 		parlay::parallel_for(0, n, [&](int i){
@@ -153,7 +153,7 @@ namespace PACZU{
 			// delete_pts[i] = {P[i]->morton_id, P[i]->id};
 			// insert_pts[i] = {P[i]->id, P[i]};
 		});
-		auto m2 = zmap::multi_delete(mmp, delete_pts);
+			auto m2 = zmap::multi_delete(std::move(mmp), delete_pts);
 
 		return m2;
 	}

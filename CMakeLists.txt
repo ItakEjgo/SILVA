@@ -18,6 +18,7 @@ add_compile_options(
 include_directories(include)
 include_directories(third_party)
 include_directories(baselines/spacetreelib/include)
+include_directories(baselines/spacetreelib/include/parlaylib/include)
 include_directories(baselines/spacetreelib/include/libmorton/include)
 include_directories(tests)
 find_package(Threads REQUIRED)

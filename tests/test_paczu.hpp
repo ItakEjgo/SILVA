@@ -38,8 +38,8 @@ namespace PACZU{
 			update_mbr = updove_mbr;
 		}
 
-		vector<PACZ::zmap> all_versions;
-		PACZ::zmap tree;
+		vector<PACZU::zmap> all_versions;
+		PACZU::zmap tree;
 
 		/* Build initial version */
 		auto build_avg = time_loop(
@@ -47,7 +47,7 @@ namespace PACZU{
 				tree.clear();
 			},
             [&]() {
-				tree = PACZ::map_init(P);	// initi
+				tree = PACZU::map_init(P);	// initi
             },
    	    	[&](){
 			});
@@ -64,8 +64,8 @@ namespace PACZU{
 		size_t pre_inte_num = 0, pre_leaf_num = 0, pre_leaf_sz = 0;
 		cur_leaf_sz += pre_leaf_sz;
 		
-		prev_mem = 1.0 * tree.size_in_bytes(f_noop, mmp);
-		tie(pre_inte_num, pre_leaf_num, pre_leaf_sz) = tree.node_stats(num_mmp);
+				// tie(pre_inte_num, pre_leaf_num, pre_leaf_sz) = tree.node_stats();
+				tie(pre_inte_num, pre_leaf_num, pre_leaf_sz) = tree.node_stats();
 
 		cout << "[init-version memory]: " << prev_mem / 1024.0 / 1024.0 << " MB" << endl;
 		cout << "[init-version node nums]: " << pre_inte_num << " interior nodes, " << pre_leaf_num << " leaf nodes" << endl;
@@ -81,7 +81,7 @@ namespace PACZU{
 					new_ver[i].clear();
 				},
 				[&]() {
-					new_ver[i] = PACZ::map_commit(all_versions[i], P_insert[i], P_delete[i]);
+					new_ver[i] = PACZU::map_commit(all_versions[i], P_insert[i], P_delete[i]);
 				},
 				[&](){});
 
@@ -92,8 +92,8 @@ namespace PACZU{
 			cur_inte_num = cur_leaf_num = 0;
 
 			for (size_t j = 0; j < all_versions.size(); j++){
-				cur_mem += 1.0 * all_versions[j].size_in_bytes(f_noop, mmp); 	// accumulate all version memories, shared pointers only count once
-				auto [tmp_inte_num, tmp_leaf_num, tmp_leaf_sz] = all_versions[j].node_stats(num_mmp);
+								// auto [tmp_inte_num, tmp_leaf_num, tmp_leaf_sz] = all_versions[j].node_stats();
+								auto [tmp_inte_num, tmp_leaf_num, tmp_leaf_sz] = all_versions[j].node_stats();
 				cur_inte_num += tmp_inte_num, cur_leaf_num += tmp_leaf_num;
 			}
 			cout << "[new ver commit time]: " << fixed << setprecision(6) << commit_avg << " Seconds" << endl;
@@ -108,7 +108,7 @@ namespace PACZU{
 	template<typename PT, typename RQ>
     inline void plain_spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
 		/*  build tree */
-		auto pacz0 = PACZ::map_init(P);	//	initial version
+		auto pacz0 = PACZU::map_init(P);	//	initial version
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
 		/* get insert, delete points */
 		auto P_test = geobase::shuffle_point(P, max_batch_size);
@@ -123,7 +123,7 @@ namespace PACZU{
 			auto P_delete = P_delete_set.substr(0, delete_num);
 
 			auto P_newver = geobase::collect_newver_point(P, P_insert, P_delete);
-			auto pacz1 = PACZ::map_init(P_newver);
+			auto pacz1 = PACZU::map_init(P_newver);
 
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -137,7 +137,7 @@ namespace PACZU{
 					[&](){},
 					[&](){
 						diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-						PACZ::plain_map_spatial_diff(pacz0, pacz1, range_queries[i], ret_diff, l_pts, r_pts);
+						PACZU::plain_map_spatial_diff(pacz0, pacz1, range_queries[i], ret_diff, l_pts, r_pts);
 						ret_diff.compact();
 						addCnt[i] = ret_diff.add.size();
 						removeCnt[i] = ret_diff.remove.size();
@@ -160,7 +160,7 @@ namespace PACZU{
 	template<typename PT, typename RQ>
     inline void spatial_diff_test_latency(PT &P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, size_t &insert_ratio){
         /*  build tree */
-		auto pacz0 = PACZ::map_init(P);	//	initial version
+		auto pacz0 = PACZU::map_init(P);	//	initial version
 		auto max_batch_size = batch_sizes[batch_sizes.size() - 1];
 
         /* get insert, delete points */
@@ -175,8 +175,8 @@ namespace PACZU{
 			auto P_insert = P_insert_set.substr(0, insert_num);
 			auto P_delete = P_delete_set.substr(0, delete_num);
 
-			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
-			auto pacz2 = PACZ::map_insert(P_insert, pacz1);	//	new	version
+			auto pacz1 = PACZU::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZU::map_insert(P_insert, pacz1);	//	new	version
         
         	parlay::sequence<size_t> addCnt(range_queries.size());
         	parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -190,7 +190,7 @@ namespace PACZU{
 					[&](){
 						// for (size_t i = 0; i < range_queries.size(); i++){
 							diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-							PACZ::plain_map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff, l_pts, r_pts);
+							PACZU::plain_map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff, l_pts, r_pts);
 							ret_diff.compact();
 							addCnt[i] = ret_diff.add.size();
 							removeCnt[i] = ret_diff.remove.size();
@@ -215,7 +215,7 @@ namespace PACZU{
 	/*	50% insertion, 50% deletion	*/
 	template<typename PT, typename RQ>
 	auto spatial_diff_test_fix_size(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto pacz0 = PACZ::map_init(P);	//	initial version
+		auto pacz0 = PACZU::map_init(P);	//	initial version
 
 		for (auto &batch_size: batch_sizes){
 			if (batch_size > P.size()) break;
@@ -233,8 +233,8 @@ namespace PACZU{
 
 			cout << "# of insertion/deletion: " << P_insert.size() << ", " << P_delete.size();
 	
-			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
-			auto pacz2 = PACZ::map_insert(P_insert, pacz1);	//	new	version
+			auto pacz1 = PACZU::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZU::map_insert(P_insert, pacz1);	//	new	version
 	
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -244,7 +244,7 @@ namespace PACZU{
 				[&]() {
 					parlay::parallel_for(0, range_queries.size(), [&](int i){
 						diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-						PACZ::map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff);
+						PACZU::map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff);
 						ret_diff.compact();
 						addCnt[i] = ret_diff.add.size();
 						removeCnt[i] = ret_diff.remove.size();
@@ -259,7 +259,7 @@ namespace PACZU{
 	/*	50% insertion, 50% deletion	*/
 	template<typename PT, typename RQ>
 	auto spatial_diff_test_fix_ratio(PT P,  RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool use_hilbert = false){
-		auto pacz0 = PACZ::map_init(P);	//	initial version
+		auto pacz0 = PACZU::map_init(P);	//	initial version
 
 		for (auto &batch_size: batch_sizes){
 			if (batch_size > P.size()) break;
@@ -274,8 +274,8 @@ namespace PACZU{
 
 			cout << "# of insertion/deletion: " << P_insert.size() << ", " << P_delete.size();
 	
-			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
-			auto pacz2 = PACZ::map_insert(P_insert, pacz1);	//	new	version
+			auto pacz1 = PACZU::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZU::map_insert(P_insert, pacz1);	//	new	version
 	
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -285,7 +285,7 @@ namespace PACZU{
 				[&]() {
 					parlay::parallel_for(0, range_queries.size(), [&](int i){
 						diff_type ret_diff(mvq::Config::get().maxSize, mvq::Config::get().maxSize);
-						PACZ::map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff);
+						PACZU::map_spatial_diff(pacz0, pacz2, range_queries[i], ret_diff);
 						ret_diff.compact();
 						addCnt[i] = ret_diff.add.size();
 						removeCnt[i] = ret_diff.remove.size();
@@ -298,7 +298,7 @@ namespace PACZU{
 
 	template<typename PT, typename RQ>
 	auto spatial_diff_test(PT P, RQ &range_queries, parlay::sequence<size_t> &batch_sizes, bool &early_end, bool use_hilbert = false){
-		auto pacz0 = PACZ::map_init(P);	//	initial version
+		auto pacz0 = PACZU::map_init(P);	//	initial version
 
 		for (auto &batch_size: batch_sizes){
 			if (batch_size > P.size()) batch_size = P.size();
@@ -311,8 +311,8 @@ namespace PACZU{
 				P_insert[j].id += P.size();
 			});
 
-			auto pacz1 = PACZ::map_delete(P_delete, pacz0); 
-			auto pacz2 = PACZ::map_insert(P_insert, pacz0);	//	new	version
+			auto pacz1 = PACZU::map_delete(P_delete, pacz0); 
+			auto pacz2 = PACZU::map_insert(P_insert, pacz0);	//	new	version
 
 			parlay::sequence<size_t> addCnt(range_queries.size());
 			parlay::sequence<size_t> removeCnt(range_queries.size());
@@ -329,7 +329,7 @@ namespace PACZU{
 						commit_ver.clear();
 					},
 		    		[&]() {
-						commit_ver = PACZ::map_commit(pacz0, P_insert, P_delete);
+						commit_ver = PACZU::map_commit(pacz0, P_insert, P_delete);
 		    		},
 	    			[&](){} 
 				);
@@ -344,7 +344,7 @@ namespace PACZU{
 						conflict_delete.clear();
 					},
 		    		[&]() {
-						tie(merge_ver, conflict_insert, conflict_update, conflict_delete) = PACZ::map_merge(pacz0, pacz1, pacz2);
+						tie(merge_ver, conflict_insert, conflict_update, conflict_delete) = PACZU::map_merge(pacz0, pacz1, pacz2);
 		    		},
 	    			[&](){} 
 				);
@@ -362,7 +362,7 @@ namespace PACZU{
 	template<typename PT>
     inline void multi_version_query_test(PT P, string query_dir, int batch_percent = 10, int version_num = 6){
 		// build zdtree initial version
-		auto CPAMZ = PACZ::map_init(P);
+		auto CPAMZ = PACZU::map_init(P);
 		cout << "build finished" << endl;
 
 		auto num_insert_version = version_num / 2;
@@ -380,7 +380,7 @@ namespace PACZU{
 				P_insert[j].id += (i + 1) * P.size();
 			});
 
-			all_versions[i + 1] = PACZ::map_insert(P_insert, all_versions[i]); 
+			all_versions[i + 1] = PACZU::map_insert(P_insert, all_versions[i]); 
 		}
 		cout << "insert finished" << endl;	
 		//	delete 3 versions
@@ -391,7 +391,7 @@ namespace PACZU{
 				P_delete[j].id += (i + 1) * P.size();
 			});
 			
-			all_versions[i + 4] = PACZ::map_delete(P_delete, all_versions[i + 3]); 
+			all_versions[i + 4] = PACZU::map_delete(P_delete, all_versions[i + 3]); 
 			// all_versions.push_back(new_version);
 		}
 		cout << "delete finished" << endl;	
@@ -410,7 +410,7 @@ namespace PACZU{
 						parlay::parallel_for(
 							0, range_count_querys.size(),
 							[&]( size_t k ) {
-								rangeCnt[k] = PACZ::range_count(all_versions[j], range_count_querys[k]); 
+								rangeCnt[k] = PACZU::range_count(all_versions[j], range_count_querys[k]); 
 						});
 					},
 				[&](){} );
@@ -438,7 +438,7 @@ namespace PACZU{
 						parlay::parallel_for(
 							0, range_report_querys.size(),
 							[&]( size_t k ) {
-		    					rangeCnt[k] = PACZ::range_report(all_versions[j], range_report_querys[k]).size();
+		    					rangeCnt[k] = PACZU::range_report(all_versions[j], range_report_querys[k]).size();
 						});
 					},
 				[&](){} );
@@ -455,7 +455,7 @@ namespace PACZU{
 
 	template<typename PT>
     inline void diff_test(PT P, int batch_percent = 10, bool use_hilbert = false){
-		auto pacz0 = PACZ::map_init(P);	//	initial version
+		auto pacz0 = PACZU::map_init(P);	//	initial version
 
 		auto batch_size = P.size() * batch_percent / 100;	//	insertion 10%
 		auto P_insert = P.substr(0, batch_size);
@@ -465,14 +465,14 @@ namespace PACZU{
 
 		auto P_delete = P.substr(0, 2 * batch_size);
 
-		auto pacz1 = PACZ::map_insert(P_insert, pacz0);	//	new	version
-		pacz1 = PACZ::map_delete(P_delete, pacz1); 
+		auto pacz1 = PACZU::map_insert(P_insert, pacz0);	//	new	version
+		pacz1 = PACZU::map_delete(P_delete, pacz1); 
 
 		auto add_sz = 0, remove_sz = 0;
 	    auto cpam_diff_avg = time_loop(
 		    3, 1.0, [&]() {},
 		    [&]() {
-				auto [add, remove] = PACZ::map_diff(pacz0, pacz1);
+				auto [add, remove] = PACZU::map_diff(pacz0, pacz1);
 				add_sz = add.size();
 				remove_sz = remove.size();
 		    },
@@ -489,17 +489,17 @@ namespace PACZU{
 
 	template<typename PT>
     inline void build_test(PT P, bool use_hilbert = false){
-		PACZ::zmap tree;
+		PACZU::zmap tree;
 
 		auto cpam_build_avg = time_loop(
 			3, 1.0, [&](){
 				tree.clear();
 			},
 			[&](){
-				tree = PACZ::map_init(P);
+				tree = PACZU::map_init(P);
 			},
 		[&](){} );
-		// auto [mem_inte_nodes, mem_leaf_nodes] = PACZ::size_in_bytes();
+		// auto [mem_inte_nodes, mem_leaf_nodes] = PACZU::size_in_bytes();
 		auto [num_inte_nodes, num_leaf_nodes, leaf_size] = tree.node_stats();
 		// cout << "leaf sz = " << 1.0 * leaf_size / 1024.0 / 1024.0 << " MB" << endl;
 
@@ -516,7 +516,7 @@ namespace PACZU{
 			// "[memory usage for leaf nodes]: " << 1.0 * mem_leaf_nodes / 1024.0 / 1024.0 << " MB"  << endl;
 
 		// cout << "pacz print stats: " << endl;
-		// PACZ::print_stats();
+		// PACZU::print_stats();
 
 		if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 		else cout << "[Zorder-PACZ]: ";
@@ -525,7 +525,7 @@ namespace PACZU{
 
 	template<class PT, class RQ>
     inline void range_count_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false){
-	    auto tree = PACZ::map_init(P, use_hilbert);
+	    auto tree = PACZU::map_init(P, use_hilbert);
 
 		parlay::sequence<size_t> rangeCnt(querys.size());
 
@@ -536,7 +536,7 @@ namespace PACZU{
 				3, 1.0, 
 				[&]() {},
 				[&]() {					
-					rangeCnt[i] = PACZ::range_count(tree, querys[i], use_hilbert);
+					rangeCnt[i] = PACZU::range_count(tree, querys[i], use_hilbert);
 				},
 				[&](){} );
 			if (rangeCnt[i] != cnt[i]){
@@ -552,7 +552,7 @@ namespace PACZU{
 
 	template<class PT, class RQ>
     inline void range_report_test(PT P, RQ querys, parlay::sequence<size_t> &cnt, bool use_hilbert = false, size_t par_for_granularity = 100){
-	    auto tree = PACZ::map_init(P, use_hilbert);
+	    auto tree = PACZU::map_init(P, use_hilbert);
 
 		// parlay::sequence<Bounding_Box> q2(querys.size());
 		parlay::sequence<size_t> rangeCnt(querys.size());
@@ -569,7 +569,7 @@ namespace PACZU{
 			[&]() {					
 				// for (size_t i = 0; i < querys.size(); i++){
 				parlay::parallel_for(0, querys.size(), [&](size_t i){
-					rangeCnt[i] = PACZ::range_report(tree, querys[i], rangeReport[i], use_hilbert);
+					rangeCnt[i] = PACZU::range_report(tree, querys[i], rangeReport[i], use_hilbert);
 				});
 				// }
 			},
@@ -611,7 +611,7 @@ namespace PACZU{
 
 	template<class PT>
     inline void knn_test(PT P, size_t k = 10, size_t q_num = 50000, bool use_hilbert = false){
-	    auto tree = PACZ::map_init(P, use_hilbert);
+	    auto tree = PACZU::map_init(P, use_hilbert);
 		
 		auto knn_sqrdis = parlay::sequence<size_t>::uninitialized(q_num);
 		
@@ -620,7 +620,7 @@ namespace PACZU{
 			[&]() {},
 			[&]() {					
 				for (size_t i = 0; i < q_num; i++){
-					knn_sqrdis[i] = PACZ::knn(tree, P[i], k).top().second;
+					knn_sqrdis[i] = PACZU::knn(tree, P[i], k).top().second;
 				}
 			},
 			[&](){} );
@@ -639,9 +639,9 @@ namespace PACZU{
 	
 
 	template<typename PT>
-    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
+    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false, bool single_version = false){
 		auto n = P_base.size();
-		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
+		auto m1 = PACZU::map_init(P_base, use_hilbert);	//	build original tree
 
 		auto rand_p = shuffle_point(P_update);
 		parlay::parallel_for (0, rand_p.size(), [&](int i){
@@ -650,100 +650,146 @@ namespace PACZU{
 
 		for (auto ratio: batch_ratios){
 			size_t cur_batch_size = std::max<size_t>(1, rand_p.size() * ratio);
-				std::vector<decltype(m1)> versions;
-                versions.push_back(m1);
+			std::vector<decltype(m1)> versions;
+			decltype(m1) sv_current_tree;
+			std::vector<double> batch_times;
+			std::vector<double> batch_mems;
+			double total_ms = 0;
+			cout << "[Testing Ratio]: " << ratio << endl;
 
-                std::vector<double> batch_times;
-                std::vector<double> batch_mems;
-                double total_ms = 0;
-                cout << "[Testing Ratio]: " << ratio << endl;
-                for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
-                    size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
-                    auto P2 = rand_p.substr(i, current_batch_size);
+			double total_avg = time_loop(
+				3, 1.0, 
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)(PACZU::zmap::gc_type::copy(m1.get_root()));
+					} else {
+						versions.clear();
+						versions.push_back(m1);
+					}
+					batch_times.clear();
+					batch_mems.clear();
+				},
+				[&]() {
+					for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
+						size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_batch_size);
 
-                    decltype(m1) test_ver;
-                    
-                    auto batch_avg = time_loop(
-                        3, 1.0, 
-                        [&]() { test_ver = decltype(m1)(); },
-                        [&]() { test_ver = PACZ::map_insert(P2, versions.back(), use_hilbert); },
-                        [&]() {}
-                    );
+						parlay::internal::timer t;
+						if (single_version) {
+							sv_current_tree = PACZU::map_insert(P2, std::move(sv_current_tree), use_hilbert);
+						} else {
+							versions.push_back(PACZU::map_insert(P2, versions.back(), use_hilbert));
+						}
+						batch_times.push_back(t.next_time() * 1000.0);
+						
+						double mem_mb = psi::cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+						batch_mems.push_back(mem_mb);
+					}
+				},
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)();
+					} else {
+						versions.clear();
+					}
+				}
+			);
 
-                    batch_times.push_back(batch_avg * 1000.0);
-                    total_ms += batch_avg * 1000.0;
-                    versions.push_back(test_ver);
-                    cout << "[versions count]: " << versions.size() << endl;
-                    double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-                    batch_mems.push_back(mem_mb);
-                    cout << "[step_time]: " << batch_avg * 1000.0 << " [step_mem]: " << mem_mb << endl;
-                }
+			total_ms = total_avg * 1000.0;
+			
+			if (!single_version && versions.size() > 0) cout << "[versions count]: " << versions.size() << endl;
+			for (size_t i = 0; i < batch_times.size(); i++) {
+				cout << "[step_time]: " << batch_times[i] << " [step_mem]: " << batch_mems[i] << endl;
+			}
 
-                cout << "[per_batch_time]: ";
-                for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[per_batch_mem]: ";
-                for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[memory_MB]: " << batch_mems.back() << endl;
+			cout << "[per_batch_time]: ";
+			for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[per_batch_mem]: ";
+			for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[memory_MB]: " << batch_mems.back() << endl;
 
 			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 			else cout << "[Zorder-PACZ]: ";
-		    	cout << "batch insert time (avg): " << (total_ms / 1000.0) << endl;
+			cout << "batch insert time (avg): " << (total_ms / 1000.0) << endl;
 		}
-
 	}
 
 	template<typename PT>
-    inline void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
-		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
+    inline void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false, bool single_version = false){
+		auto m1 = PACZU::map_init(P_base, use_hilbert);	//	build original tree
 		auto rand_p = shuffle_point(P_base);
 
 		for (auto ratio: batch_ratios){
 			size_t cur_batch_size = std::max<size_t>(1, rand_p.size() * ratio);
-				std::vector<decltype(m1)> versions;
-                versions.push_back(m1);
+			std::vector<decltype(m1)> versions;
+			decltype(m1) sv_current_tree;
+			std::vector<double> batch_times;
+			std::vector<double> batch_mems;
+			double total_ms = 0;
+			cout << "[Testing Ratio]: " << ratio << endl;
 
-                std::vector<double> batch_times;
-                std::vector<double> batch_mems;
-                double total_ms = 0;
-                cout << "[Testing Ratio]: " << ratio << endl;
-                for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
-                    size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
-                    auto P2 = rand_p.substr(i, current_batch_size);
+			double total_avg = time_loop(
+				3, 1.0, 
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)(PACZU::zmap::gc_type::copy(m1.get_root()));
+					} else {
+						versions.clear();
+						versions.push_back(m1);
+					}
+					batch_times.clear();
+					batch_mems.clear();
+				},
+				[&]() {
+					for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
+						size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_batch_size);
 
-                    decltype(m1) test_ver;
-                    
-                    auto batch_avg = time_loop(
-                        3, 1.0, 
-                        [&]() { test_ver = decltype(m1)(); },
-                        [&]() { test_ver = PACZ::map_delete(P2, versions.back(), use_hilbert); },
-                        [&]() {}
-                    );
+						parlay::internal::timer t;
+						if (single_version) {
+							sv_current_tree = PACZU::map_delete(P2, std::move(sv_current_tree), use_hilbert);
+						} else {
+							versions.push_back(PACZU::map_delete(P2, versions.back(), use_hilbert));
+						}
+						batch_times.push_back(t.next_time() * 1000.0);
+						
+						double mem_mb = psi::cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+						batch_mems.push_back(mem_mb);
+					}
+				},
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)();
+					} else {
+						versions.clear();
+					}
+				}
+			);
 
-                    batch_times.push_back(batch_avg * 1000.0);
-                    total_ms += batch_avg * 1000.0;
-                    versions.push_back(test_ver);
-                    cout << "[versions count]: " << versions.size() << endl;
-                    double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-                    batch_mems.push_back(mem_mb);
-                    cout << "[step_time]: " << batch_avg * 1000.0 << " [step_mem]: " << mem_mb << endl;
-                }
+			total_ms = total_avg * 1000.0;
+			
+			if (!single_version && versions.size() > 0) cout << "[versions count]: " << versions.size() << endl;
+			for (size_t i = 0; i < batch_times.size(); i++) {
+				cout << "[step_time]: " << batch_times[i] << " [step_mem]: " << batch_mems[i] << endl;
+			}
 
-                cout << "[per_batch_time]: ";
-                for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[per_batch_mem]: ";
-                for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[memory_MB]: " << batch_mems.back() << endl;
+			cout << "[per_batch_time]: ";
+			for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[per_batch_mem]: ";
+			for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[memory_MB]: " << batch_mems.back() << endl;
 
 			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
-			    	cout << "batch delete time (avg): " << (total_ms / 1000.0) << endl;
-		}
+			else cout << "[Zorder-PACZ]: ";
+			cout << "batch delete time (avg): " << (total_ms / 1000.0) << endl;
 	}
+} // namespace PACZU
 
 
 }

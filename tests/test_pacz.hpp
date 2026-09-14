@@ -639,7 +639,7 @@ namespace PACZ{
 	
 
 	template<typename PT>
-    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
+    inline void batch_insert_test(PT P_base, PT P_update, parlay::sequence<double> &batch_ratios, bool use_hilbert = false, bool single_version = false){
 		auto n = P_base.size();
 		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
 
@@ -650,102 +650,149 @@ namespace PACZ{
 
 		for (auto ratio: batch_ratios){
 			size_t cur_batch_size = std::max<size_t>(1, rand_p.size() * ratio);
-				std::vector<decltype(m1)> versions;
-                versions.push_back(m1);
+			std::vector<decltype(m1)> versions;
+			decltype(m1) sv_current_tree;
+			std::vector<double> batch_times;
+			std::vector<double> batch_mems;
+			double total_ms = 0;
+			cout << "[Testing Ratio]: " << ratio << endl;
 
-                std::vector<double> batch_times;
-                std::vector<double> batch_mems;
-                double total_ms = 0;
-                cout << "[Testing Ratio]: " << ratio << endl;
-                for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
-                    size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
-                    auto P2 = rand_p.substr(i, current_batch_size);
+			double total_avg = time_loop(
+				3, 1.0, 
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)(PACZ::zmap::GC::copy(m1.get_root()));
+					} else {
+						versions.clear();
+						versions.push_back(m1);
+					}
+					batch_times.clear();
+					batch_mems.clear();
+				},
+				[&]() {
+					for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
+						size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_batch_size);
 
-                    decltype(m1) test_ver;
-                    
-                    auto batch_avg = time_loop(
-                        3, 1.0, 
-                        [&]() { test_ver = decltype(m1)(); },
-                        [&]() { test_ver = PACZ::map_insert(P2, versions.back(), use_hilbert); },
-                        [&]() {}
-                    );
+						parlay::internal::timer t;
+						if (single_version) {
+							sv_current_tree = PACZ::map_insert(P2, std::move(sv_current_tree), use_hilbert);
+						} else {
+							versions.push_back(PACZ::map_insert(P2, versions.back(), use_hilbert));
+						}
+						batch_times.push_back(t.next_time() * 1000.0);
+						
+						double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+						batch_mems.push_back(mem_mb);
+					}
+				},
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)();
+					} else {
+						versions.clear();
+					}
+				}
+			);
 
-                    batch_times.push_back(batch_avg * 1000.0);
-                    total_ms += batch_avg * 1000.0;
-                    versions.push_back(test_ver);
-                    cout << "[versions count]: " << versions.size() << endl;
-                    double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-                    batch_mems.push_back(mem_mb);
-                    cout << "[step_time]: " << batch_avg * 1000.0 << " [step_mem]: " << mem_mb << endl;
-                }
+			total_ms = total_avg * 1000.0;
+			
+			if (!single_version && versions.size() > 0) cout << "[versions count]: " << versions.size() << endl;
+			for (size_t i = 0; i < batch_times.size(); i++) {
+				cout << "[step_time]: " << batch_times[i] << " [step_mem]: " << batch_mems[i] << endl;
+			}
 
-                cout << "[per_batch_time]: ";
-                for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[per_batch_mem]: ";
-                for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[memory_MB]: " << batch_mems.back() << endl;
+			cout << "[per_batch_time]: ";
+			for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[per_batch_mem]: ";
+			for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[memory_MB]: " << batch_mems.back() << endl;
 
 			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
 			else cout << "[Zorder-PACZ]: ";
-		    	cout << "batch insert time (avg): " << (total_ms / 1000.0) << endl;
+			cout << "batch insert time (avg): " << (total_ms / 1000.0) << endl;
 		}
 
 	}
 
 	template<typename PT>
-    inline void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false){
+    inline void batch_delete_test(PT P_base, parlay::sequence<double> &batch_ratios, bool use_hilbert = false, bool single_version = false){
 		auto m1 = PACZ::map_init(P_base, use_hilbert);	//	build original tree
 		auto rand_p = shuffle_point(P_base);
 
 		for (auto ratio: batch_ratios){
 			size_t cur_batch_size = std::max<size_t>(1, rand_p.size() * ratio);
-				std::vector<decltype(m1)> versions;
-                versions.push_back(m1);
+			std::vector<decltype(m1)> versions;
+			decltype(m1) sv_current_tree;
+			std::vector<double> batch_times;
+			std::vector<double> batch_mems;
+			double total_ms = 0;
+			cout << "[Testing Ratio]: " << ratio << endl;
 
-                std::vector<double> batch_times;
-                std::vector<double> batch_mems;
-                double total_ms = 0;
-                cout << "[Testing Ratio]: " << ratio << endl;
-                for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
-                    size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
-                    auto P2 = rand_p.substr(i, current_batch_size);
+			double total_avg = time_loop(
+				3, 1.0, 
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)(PACZ::zmap::GC::copy(m1.get_root()));
+					} else {
+						versions.clear();
+						versions.push_back(m1);
+					}
+					batch_times.clear();
+					batch_mems.clear();
+				},
+				[&]() {
+					for (size_t i = 0; i < rand_p.size(); i += cur_batch_size) {
+						size_t current_batch_size = std::min(cur_batch_size, rand_p.size() - i);
+						auto P2 = rand_p.substr(i, current_batch_size);
 
-                    decltype(m1) test_ver;
-                    
-                    auto batch_avg = time_loop(
-                        3, 1.0, 
-                        [&]() { test_ver = decltype(m1)(); },
-                        [&]() { test_ver = PACZ::map_delete(P2, versions.back(), use_hilbert); },
-                        [&]() {}
-                    );
+						parlay::internal::timer t;
+						if (single_version) {
+							sv_current_tree = PACZ::map_delete(P2, std::move(sv_current_tree), use_hilbert);
+						} else {
+							versions.push_back(PACZ::map_delete(P2, versions.back(), use_hilbert));
+						}
+						batch_times.push_back(t.next_time() * 1000.0);
+						
+						double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
+						batch_mems.push_back(mem_mb);
+					}
+				},
+				[&]() {
+					if (single_version) {
+						sv_current_tree = decltype(m1)();
+					} else {
+						versions.clear();
+					}
+				}
+			);
 
-                    batch_times.push_back(batch_avg * 1000.0);
-                    total_ms += batch_avg * 1000.0;
-                    versions.push_back(test_ver);
-                    cout << "[versions count]: " << versions.size() << endl;
-                    double mem_mb = cpam::cpam_live_mem.load(std::memory_order_relaxed) / (1024.0 * 1024.0);
-                    batch_mems.push_back(mem_mb);
-                    cout << "[step_time]: " << batch_avg * 1000.0 << " [step_mem]: " << mem_mb << endl;
-                }
+			total_ms = total_avg * 1000.0;
+			
+			if (!single_version && versions.size() > 0) cout << "[versions count]: " << versions.size() << endl;
+			for (size_t i = 0; i < batch_times.size(); i++) {
+				cout << "[step_time]: " << batch_times[i] << " [step_mem]: " << batch_mems[i] << endl;
+			}
 
-                cout << "[per_batch_time]: ";
-                for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[per_batch_mem]: ";
-                for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
-                cout << endl;
-                cout << "[memory_MB]: " << batch_mems.back() << endl;
+			cout << "[per_batch_time]: ";
+			for(size_t j = 0; j < batch_times.size(); j++) cout << batch_times[j] << (j==batch_times.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[per_batch_mem]: ";
+			for(size_t j = 0; j < batch_mems.size(); j++) cout << batch_mems[j] << (j==batch_mems.size()-1 ? "" : ",");
+			cout << endl;
+			cout << "[memory_MB]: " << batch_mems.back() << endl;
 
 			cout << "[batch_ratio]: " << ratio << endl;
 			if (use_hilbert) cout << "[Hilbert-PACZ]: ";
-			    	cout << "batch delete time (avg): " << (total_ms / 1000.0) << endl;
+			else cout << "[Zorder-PACZ]: ";
+			cout << "batch delete time (avg): " << (total_ms / 1000.0) << endl;
 		}
 	}
 
+} // namespace PACZ
 
-}
 
 //	use CPAM (without bounding box) to build

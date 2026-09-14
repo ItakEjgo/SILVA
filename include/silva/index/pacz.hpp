@@ -39,7 +39,7 @@ namespace PACZ{
 	};
 
 	// using zmap = cpam::aug_map<entry, 32>;
-	using zmap = cpam::aug_map<entry, 16>;
+	using zmap = cpam::aug_map<entry, 40>;
 	using par = std::tuple<entry::key_t, entry::val_t>;
 
 	template<class T, class MBR>
@@ -106,7 +106,7 @@ namespace PACZ{
 	}	
 
 	template<typename PT, typename M>
-	auto map_insert(PT &P, M &mmp, bool use_hilbert = false){
+		auto map_insert(PT &P, M mmp, bool use_hilbert = false){
 		size_t n = P.size();
 
 		parlay::internal::timer t("debug", false);
@@ -119,14 +119,14 @@ namespace PACZ{
 			// insert_pts[i] = {P[i]->id, P[i]};
 		});
 		t.next("init time");
-		auto m2 = zmap::multi_insert(mmp, insert_pts);
+			auto m2 = zmap::multi_insert(std::move(mmp), insert_pts);
 		t.next("insert time");
 
 		return m2;
 	}
 
 	template<typename PT, typename M>
-	auto map_delete(PT &P, M &mmp, bool use_hilbert = false){
+		auto map_delete(PT &P, M mmp, bool use_hilbert = false){
 		size_t n = P.size();
 
 		parlay::parallel_for(0, n, [&](int i){
@@ -139,7 +139,7 @@ namespace PACZ{
 			// delete_pts[i] = {P[i]->morton_id, P[i]->id};
 			// insert_pts[i] = {P[i]->id, P[i]};
 		});
-		auto m2 = zmap::multi_delete(mmp, delete_pts);
+			auto m2 = zmap::multi_delete(std::move(mmp), delete_pts);
 
 		return m2;
 	}
