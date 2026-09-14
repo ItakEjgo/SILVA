@@ -6,7 +6,9 @@ import argparse
 from datetime import datetime
 
 class SilvaExperimentRunner:
-    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None, snapshot_ratio="0.2", algo=None):
+    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None, snapshot_ratio="0.2", algo=None, single_version=False, numa=False):
+        self.numa = numa
+        self.single_version = single_version
         self.threads = threads
         self.ratios = ratios
         self.dataset_base_file = dataset_base
@@ -42,6 +44,9 @@ class SilvaExperimentRunner:
             # Bind to cores 0 to (threads-1)
             core_range = f"0-{self.threads - 1}" if self.threads > 1 else "0"
             cmd = ["taskset", "-c", core_range] + cmd
+            
+        if self.numa:
+            cmd = ["numactl", "-i", "all"] + cmd
 
         print(f"  [RUN] {' '.join(cmd)}")
         try:
@@ -240,6 +245,8 @@ class SilvaExperimentRunner:
                         cmd.extend(["-br", self.ratios])
                     if self.snapshot_ratio:
                         cmd.extend(["-p", str(self.snapshot_ratio)])
+                    if self.single_version:
+                        cmd.extend(["-sv"])
                     output = self.run_command(cmd, timeout=1800)
                     audit_log_path = os.path.join(self.results_dir, f"audit_log_{task_name}{suffix}_{timestamp}.txt")
                     with open(audit_log_path, 'a') as af:
@@ -408,7 +415,8 @@ if __name__ == "__main__":
     parser.add_argument("--ratios", type=str, default=None, help="Comma-separated batch ratios (e.g., '0.01,0.1,0.25,0.5,1.0')")
     parser.add_argument("--dataset-base", type=str, default=None, help="Specific base dataset file (e.g. dataset/uniform/10M_2_1.in)")
     parser.add_argument("--dataset-update", type=str, default=None, help="Specific update dataset file for batch ops (e.g. dataset/uniform/10M_2_2.in)")
-    parser.add_argument("--snapshot-ratio", type=str, default="0.2", help="Snapshot ratio parameter (-p) passed to binary (default: 0.2)")
+    parser.add_argument("--single-version", action="store_true", help="Pass -sv to binary to test in-place incremental updates")
+    parser.add_argument("--numa", action="store_true", help="Use numactl -i all to interleave memory across NUMA nodes")
     parser.add_argument("--algo", type=str, default=None, help="Comma-separated algorithms to run (e.g. pacz,paczu)")
     
     args = parser.parse_args()
@@ -418,7 +426,9 @@ if __name__ == "__main__":
         dataset_base=args.dataset_base,
         dataset_update=args.dataset_update,
         snapshot_ratio=args.snapshot_ratio,
-        algo=args.algo
+        algo=args.algo,
+        single_version=args.single_version,
+        numa=args.numa
     )
     
     if args.task in ["build", "all"]:

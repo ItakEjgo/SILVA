@@ -4,7 +4,7 @@ import sys
 import argparse
 import os
 
-def run_cmd(algo, ratio, is_single_version, base_file, update_file, threads):
+def run_cmd(algo, ratio, is_single_version, base_file, update_file, threads, use_numa):
     cmd = [
         "build/main",
         "-t", "batch-insert",
@@ -14,6 +14,9 @@ def run_cmd(algo, ratio, is_single_version, base_file, update_file, threads):
         "-br", str(ratio),
         "-p", "0.2"
     ]
+    if use_numa:
+        cmd = ["numactl", "-i", "all"] + cmd
+        
     if threads > 0:
         cmd = ["taskset", "-c", f"0-{threads-1}"] + cmd
         
@@ -42,6 +45,7 @@ def main():
     parser.add_argument("--dataset-base", default="dataset/uniform/1M_2_1.in", help="基础数据集路径")
     parser.add_argument("--dataset-update", default="dataset/uniform/1M_2_2.in", help="更新数据集路径")
     parser.add_argument("--ratios", type=str, default="0.001", help="逗号分隔的多个 ratio，例如: 0.001,0.01,0.1")
+    parser.add_argument("--numa", action="store_true", help="Use numactl -i all")
     parser.add_argument("--threads", type=int, default=0, help="线程数，默认 0 表示使用所有可用核心")
     args = parser.parse_args()
 
@@ -65,11 +69,10 @@ def main():
     ratios_list = [float(r.strip()) for r in args.ratios.split(",")]
 
     for r in ratios_list:
-        results = []
         print(f"\n>>> 开始测试 Ratio = {r} <<<")
         for name, algo, sv, desc in configs:
             print(f"正在运行: {name:10} | 模式: {desc} ... ", end="", flush=True)
-            t = run_cmd(algo, r, sv, args.dataset_base, args.dataset_update, args.threads)
+            t = run_cmd(algo, r, sv, args.dataset_base, args.dataset_update, args.threads, args.numa)
             print(t)
             results.append((name, desc, t))
 
