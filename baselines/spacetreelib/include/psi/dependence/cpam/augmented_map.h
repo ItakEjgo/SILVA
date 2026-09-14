@@ -49,6 +49,12 @@ public:
 	{
 		return M(Tree::aug_filter2(m.get_root(), fpt, fbb));
 	}
+	
+	template <class F, typename F2>
+	static size_t range_count_filter2(M m, F const &f, const F2 &f2)
+	{
+		return Tree::range_count_filter2(m.get_root(), f, f2);
+	}
 	// NOTE: range query interfaces
 	template <class F, typename F2>
 	static size_t range_count_filter(M m, F const &f, const F2 &f2)

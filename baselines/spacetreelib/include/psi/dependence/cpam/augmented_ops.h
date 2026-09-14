@@ -309,38 +309,37 @@ struct augmented_ops : map_type {
 	}
 
 	// F for box check, F2 for point check
-	// template <typename F, typename F2>
-	// static size_t range_count_filter2(node* b, F const& f, const F2& f2,
-	//                                   size_t granularity = node_limit) {
-	//   if (!b) return 0;
-	//   auto cur_aug = aug_val(b);
-	//   auto flag = f(cur_aug.first);
-	//   if (flag < 0) return 0;  // exclude
-	//   if (flag == 1) {
-	//     return cur_aug.second;  // fully contained
-	//   }
-	//
-	//   if (map_type::is_compressed(b)) {  // leaf node
-	//     auto ret = 0;
-	//     auto f_filter = [&](auto const& et) {
-	//       auto cur_pt = std::get<1>(et);
-	//       if (f2(cur_pt) == 1) {
-	//         ret++;
-	//       }
-	//     };
-	//     map_type::iterate_seq(b, f_filter);
-	//     return ret;
-	//   }
-	//
-	//   auto rb = map_type::cast_to_regular(b);
-	//   auto cur_pt = map_type::get_val(rb);
-	//   auto flag2 = f2(cur_pt) == 1 ? 1 : 0;
-	//
-	//   auto l = range_count_filter2(rb->lc, f, f2, granularity);
-	//   auto r = range_count_filter2(rb->rc, f, f2, granularity);
-	//
-	//   return l + r + flag2;
-	// }
+	template <typename F, typename F2>
+	static size_t range_count_filter2(node* b, F const& f, const F2& f2,
+	                                  size_t granularity = node_limit) {
+	  if (!b) return 0;
+	  auto cur_aug = aug_val(b);
+	  auto flag = f(cur_aug);
+	  if (flag < 0) return 0;  // exclude
+	  if (flag == 1) {
+	    return map_type::size(b);  // fully contained
+	  }
+	
+	  if (map_type::is_compressed(b)) {  // leaf node
+	    auto ret = 0;
+	    auto f_filter = [&](auto const& et) {
+	      if (f2(et)) {
+	        ret++;
+	      }
+	    };
+	    map_type::iterate_seq(b, f_filter);
+	    return ret;
+	  }
+	
+	  auto rb = map_type::cast_to_regular(b);
+	  auto cur_pt = rb->entry.first;
+	  auto flag2 = f2(cur_pt) == 1 ? 1 : 0;
+	
+	  auto l = range_count_filter2(rb->lc, f, f2, granularity);
+	  auto r = range_count_filter2(rb->rc, f, f2, granularity);
+	
+	  return l + r + flag2;
+	}
 
 	template <class base_tree, typename box_type, typename Logger>
 	static size_t range_count_filter2(node *b, box_type const &query_box,
