@@ -41,27 +41,27 @@ def run_cmd(algo, ratio, is_single_version, base_file, update_file, threads, use
         return "> 300.0 s (Timeout)"
 
 def main():
-    parser = argparse.ArgumentParser(description="运行 5 种算法组合对比实验")
-    parser.add_argument("--dataset-base", default="dataset/uniform/1M_2_1.in", help="基础数据集路径")
-    parser.add_argument("--dataset-update", default="dataset/uniform/1M_2_2.in", help="更新数据集路径")
-    parser.add_argument("--ratios", type=str, default="0.001", help="逗号分隔的多个 ratio，例如: 0.001,0.01,0.1")
+    parser = argparse.ArgumentParser(description="Run 5-way algorithm comparison benchmark")
+    parser.add_argument("--dataset-base", default="dataset/uniform/1M_2_1.in", help="Base dataset path")
+    parser.add_argument("--dataset-update", default="dataset/uniform/1M_2_2.in", help="Update dataset path")
+    parser.add_argument("--ratios", type=str, default="0.001", help="Comma-separated ratios, e.g. 0.001,0.01,0.1")
     parser.add_argument("--numa", action="store_true", help="Use numactl -i all")
-    parser.add_argument("--threads", type=int, default=0, help="线程数，默认 0 表示使用所有可用核心")
+    parser.add_argument("--threads", type=int, default=0, help="Threads (default 0 means all available cores)")
     args = parser.parse_args()
 
     if not os.path.exists("build/main"):
-        print("错误: 找不到 build/main，请先执行 cd build && make -j8 编译程序！")
+        print("Error: build/main not found! Please compile the program first: cd build && make -j8")
         return
 
     configs = [
-        ("SPaCtree", "spac", True, "单版本 (原地修改)"),
-        ("PaCZUtree", "paczu", True, "单版本 (原地修改)"),
-        ("PaCZtree", "pacz", True, "单版本 (原地修改)"),
-        ("PaCZUtree", "paczu", False, "多版本 (写时复制)"),
-        ("PaCZtree", "pacz", False, "多版本 (写时复制)"),
+        ("SPaCtree", "spac", True, "Single Version (In-place)"),
+        ("PaCZUtree", "paczu", True, "Single Version (In-place)"),
+        ("PaCZtree", "pacz", True, "Single Version (In-place)"),
+        ("PaCZUtree", "paczu", False, "Multi Version (COW)"),
+        ("PaCZtree", "pacz", False, "Multi Version (COW)"),
     ]
 
-    print(f"=== 运行 5 种组合的基准实验 ===")
+    print(f"=== Running 5-Way Benchmark Comparison ===")
     print(f"Batch Ratios: {args.ratios}")
     print(f"Threads: {args.threads}")
     print("-" * 60)
@@ -69,20 +69,21 @@ def main():
     ratios_list = [float(r.strip()) for r in args.ratios.split(",")]
 
     for r in ratios_list:
-        print(f"\n>>> 开始测试 Ratio = {r} <<<")
+        results = []
+        print(f"\n>>> Starting Test Ratio = {r} <<<")
         for name, algo, sv, desc in configs:
-            print(f"正在运行: {name:10} | 模式: {desc} ... ", end="", flush=True)
+            print(f"Running: {name:10} | Mode: {desc:<25} ... ", end="", flush=True)
             t = run_cmd(algo, r, sv, args.dataset_base, args.dataset_update, args.threads, args.numa)
             print(t)
             results.append((name, desc, t))
 
-        print("\n" + "=" * 60)
-        print(f" 📊 终极基准对比表 (Ratio = {r}) ")
-        print("=" * 60)
-        print(f"| {'数据结构':<12} | {'运行场景 (版本模式)':<20} | {'实际总耗时':<15} |")
-        print(f"|{'-'*14}|{'-'*22}|{'-'*17}|")
+        print("\n" + "=" * 70)
+        print(f" 📊 Ultimate Benchmark Comparison (Ratio = {r}) ")
+        print("=" * 70)
+        print(f"| {'Data Structure':<14} | {'Version Mode':<27} | {'Total Time':<20} |")
+        print(f"|{'-'*16}|{'-'*29}|{'-'*22}|")
         for name, desc, t in results:
-            print(f"| {name:<12} | {desc:<20} | {t:<15} |")
+            print(f"| {name:<14} | {desc:<27} | {t:<20} |")
 
 
 if __name__ == "__main__":
