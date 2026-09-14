@@ -14,6 +14,8 @@
 #include "../tests/test_knn_correctness.hpp"
 #include "../tests/test_mvq.hpp"
 #include "../tests/test_pacz.hpp"
+#include "../tests/test_paczu.hpp"
+#include "../tests/test_paczu_correctness.hpp"
 
 using namespace std;
 
@@ -62,6 +64,10 @@ void run(int argc, char** argv) {
         if (update_file != "") cout << "total points update: " << P_update.size() << endl;
         return;
     }
+    if (task == "verify") {
+        PACZCorrectness::verify_test(P_base, P_update);
+        return;
+    }
 
     // Batch ratios definition
     string batch_ratios_str = cmd.getOptionValue("-br", "0.01,0.1,0.25,0.5,1.0");
@@ -78,6 +84,8 @@ void run(int argc, char** argv) {
         if (algo == "mvq" || algo == "combined") ZDTest::build_test(P_base);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::build_test(P_base);
+        if (algo == "combined") line_splitter();
+        if (algo == "paczu" || algo == "combined") PACZU::build_test(P_base);
         if (algo == "combined") line_splitter();
         if (algo == "rlog" || algo == "combined") RlogTest::build_test(P_base);
         if (algo == "combined") line_splitter();
@@ -96,6 +104,8 @@ void run(int argc, char** argv) {
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
+        if (algo == "paczu" || algo == "combined") PACZU::batch_insert_test(P_base, P_update, batch_ratios);
+        if (algo == "combined") line_splitter();
         if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P_base, P_update, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::batch_insert_test(P_base, P_update, batch_ratios);
@@ -108,6 +118,8 @@ void run(int argc, char** argv) {
         if (algo == "mvq" || algo == "combined") ZDTest::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P_base, batch_ratios);
+        if (algo == "combined") line_splitter();
+        if (algo == "paczu" || algo == "combined") PACZU::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
         if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P_base, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
@@ -123,8 +135,9 @@ void run(int argc, char** argv) {
         auto querys = std::get<1>(q_tuple);
         auto cnt = std::get<0>(q_tuple);
         if (algo == "mvq" || algo == "combined") ZDTest::range_count_test(P_base, querys, cnt);
-        if (algo == "combined") line_splitter();
         if (algo == "pacz" || algo == "combined") PACZ::range_count_test(P_base, querys, cnt);
+        if (algo == "combined") line_splitter();
+        if (algo == "paczu" || algo == "combined") PACZU::range_count_test(P_base, querys, cnt);
     }
     else if (task == "range-report") {
         string report_qry_file = cmd.getOptionValue("-r", "range_report.qry");
@@ -139,7 +152,9 @@ void run(int argc, char** argv) {
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "pkdlog" || algo == "combined") PKDLogTest::range_report_test(P_base, querys, cnt);
+        if (algo == "pacz" || algo == "combined") PACZ::range_report_test(P_base, querys, cnt);
+        if (algo == "combined") line_splitter();
+        if (algo == "paczu" || algo == "combined") PACZU::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
         if (algo == "boost" || algo == "combined") BoostTest::range_report_test(P_base, querys, cnt);
     }

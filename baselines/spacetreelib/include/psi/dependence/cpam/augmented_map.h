@@ -31,7 +31,12 @@ public:
 	using maybe_V = std::optional<V>;
 	using maybe_E = std::optional<E>;
 	using ptr = typename gc_type::ptr;
-	using map_type::node_limit;
+	using map_type::values;
+	static parlay::sequence<V> values(M m) {
+		parlay::sequence<V> out(m.size());
+		values(m, out.begin());
+		return out;
+	}
 
 	template <class F>
 	static M aug_filter(M m, F const &f)
@@ -39,6 +44,11 @@ public:
 		return M(Tree::aug_filter(m.get_root(), f));
 	}
 
+	template <class Fpt, class Fbb>
+	static M aug_filter2(M m, Fpt const &fpt, Fbb const &fbb)
+	{
+		return M(Tree::aug_filter2(m.get_root(), fpt, fbb));
+	}
 	// NOTE: range query interfaces
 	template <class F, typename F2>
 	static size_t range_count_filter(M m, F const &f, const F2 &f2)
@@ -313,7 +323,7 @@ public:
 	{
 		map_type::entries(std::move(m), out);
 	}
-	static parlay::sequence<E> entries(M m, size_t granularity = node_limit)
+	static parlay::sequence<E> entries(M m, size_t granularity = map_type::node_limit)
 	{
 		return map_type::entries(std::move(m));
 	}
@@ -326,7 +336,7 @@ public:
 	{
 		map_type::keys_to_array(std::move(m), out);
 	}
-	static parlay::sequence<K> keys(M m, size_t granularity = node_limit)
+	static parlay::sequence<K> keys(M m, size_t granularity = map_type::node_limit)
 	{
 		return map_type::keys(m, granularity);
 	}
@@ -337,12 +347,12 @@ public:
 
 	template <class R, class F>
 	static typename R::T map_reduce(M const &m, F const &f, R const &r,
-					size_t grain = node_limit)
+					size_t grain = map_type::node_limit)
 	{
 		return map_type::template map_reduce<R>(m, f, r, grain);
 	}
 	template <class F>
-	static void map_index(M m, F const &f, size_t granularity = node_limit,
+	static void map_index(M m, F const &f, size_t granularity = map_type::node_limit,
 			      size_t start = 0)
 	{
 		map_type::map_index(m, f, granularity, start);
@@ -355,7 +365,7 @@ public:
 
 	template <class F>
 	static void foreach_index(M const &m, F const &f, size_t start = 0,
-				  size_t granularity = node_limit)
+				  size_t granularity = map_type::node_limit)
 	{
 		map_type::foreach_index(m, f, start, granularity);
 	}
@@ -366,7 +376,7 @@ public:
 	}
 	template <class F>
 	static void foreach_cond(M m, F f, size_t start = 0,
-				 size_t granularity = node_limit)
+				 size_t granularity = map_type::node_limit)
 	{
 		map_type::foreach_cond(m, f, start, granularity);
 	}

@@ -2339,6 +2339,15 @@ struct map_ops : Seq {
 		auto n_b1 = b1.node_ptr();
 		auto n_b2 = b2.node_ptr();
 
+		if (Seq::is_compressed(n_b1)) {
+			auto c1 = Seq::cast_to_compressed(n_b1);
+			if (!c1->is_sorted) Seq::reorder(c1);
+		}
+		if (Seq::is_compressed(n_b2)) {
+			auto c2 = Seq::cast_to_compressed(n_b2);
+			if (!c2->is_sorted) Seq::reorder(c2);
+		}
+
 		et_type stack[base_case_size + 1];
 		size_t offset = 0;
 		auto copy_f = [&](et_type a) { // TODO: copy or ref?

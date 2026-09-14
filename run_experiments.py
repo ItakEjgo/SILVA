@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 
 class SilvaExperimentRunner:
-    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None, snapshot_ratio="0.2"):
+    def __init__(self, threads=None, ratios=None, dataset_base=None, dataset_update=None, snapshot_ratio="0.2", algo=None):
         self.threads = threads
         self.ratios = ratios
         self.dataset_base_file = dataset_base
@@ -17,7 +17,7 @@ class SilvaExperimentRunner:
         self.datasets_dir = "dataset"
         self.distributions = ["uniform"]
         self.sizes = ["10M"]
-        self.algorithms = ["mvq", "pacz", "rlog", "pkdlog"]
+        self.algorithms = algo.split(",") if algo else ["mvq", "pacz", "rlog", "pkdlog"]
         self.results_dir = "results_experiments"
         
         os.makedirs(self.results_dir, exist_ok=True)
@@ -403,27 +403,38 @@ class SilvaExperimentRunner:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SILVA Automated Experiment Framework")
-    parser.add_argument("--task", choices=["build", "insert", "delete", "update", "query", "all"], required=True, help="Experiment task to run")
+    parser.add_argument("--task", choices=["build", "insert", "delete", "update", "query", "verify", "all"], required=True, help="Experiment task to run")
     parser.add_argument("--threads", type=int, default=None, help="Restrict to N threads (uses taskset -c 0 to N-1 if specified)")
     parser.add_argument("--ratios", type=str, default=None, help="Comma-separated batch ratios (e.g., '0.01,0.1,0.25,0.5,1.0')")
     parser.add_argument("--dataset-base", type=str, default=None, help="Specific base dataset file (e.g. dataset/uniform/10M_2_1.in)")
     parser.add_argument("--dataset-update", type=str, default=None, help="Specific update dataset file for batch ops (e.g. dataset/uniform/10M_2_2.in)")
     parser.add_argument("--snapshot-ratio", type=str, default="0.2", help="Snapshot ratio parameter (-p) passed to binary (default: 0.2)")
+    parser.add_argument("--algo", type=str, default=None, help="Comma-separated algorithms to run (e.g. pacz,paczu)")
     
     args = parser.parse_args()
-    
     runner = SilvaExperimentRunner(
         threads=args.threads,
         ratios=args.ratios,
         dataset_base=args.dataset_base,
         dataset_update=args.dataset_update,
-        snapshot_ratio=args.snapshot_ratio
+        snapshot_ratio=args.snapshot_ratio,
+        algo=args.algo
     )
     
     if args.task in ["build", "all"]:
         runner.run_build_experiment()
     if args.task in ["insert", "update", "all"]:
         runner.run_batch_insert_experiment()
+    if args.task in ["verify", "all"]:
+        cmd = [runner.binary_path, "-t", "verify", "-a", "combined"]
+        if runner.dataset_base_file:
+            cmd.extend(["-i", runner.dataset_base_file])
+            if runner.dataset_update_file:
+                cmd.extend(["-u", runner.dataset_update_file])
+        else:
+            cmd.extend(["-i", f"{runner.datasets_dir}/uniform/1M_2_1.in", "-u", f"{runner.datasets_dir}/uniform/1M_2_2.in"])
+        output = runner.run_command(cmd, timeout=3600)
+        print(output)
     if args.task in ["delete", "update", "all"]:
         runner.run_batch_delete_experiment()
     if args.task in ["query", "all"]:

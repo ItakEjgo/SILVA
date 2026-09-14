@@ -190,6 +190,64 @@ struct augmented_ops : map_type {
 			return map_type::make_compressed(stack, offset);
 		}
 	}
+	template <class Fpt, class Fbb>
+	static node *aug_filter_bc2(ptr b1, Fpt const &fpt)
+	{
+		assert(b1.size() > 0);
+		et_type stack[base_case_size + 1];
+
+		auto b1_node = b1.node_ptr();
+		size_t offset = 0;
+		auto copy_f = [&](et_type a) {
+			if (fpt(a)) {
+				parlay::move_uninitialized(stack[offset++], a);
+			}
+		};
+		map_type::iterate_seq(b1_node, copy_f);
+		assert(offset <= base_case_size);
+
+		map_type::decrement_recursive(b1_node);
+
+		if (offset < B) {
+			return map_type::to_tree_impl((et_type *)stack, offset);
+		} else {
+			return map_type::make_compressed(stack, offset);
+		}
+	}
+
+	template <class Fpt, class Fbb>
+	static node *aug_filter2(ptr b, Fpt const &fpt, Fbb const &fbb,
+				 size_t granularity = node_limit)
+	{
+		if (b.empty())
+			return NULL;
+		if (b.size() <= base_case_size) {
+			return aug_filter_bc2<Fpt, Fbb>(std::move(b), fpt);
+		}
+		if (!fbb(aug_val(b.unsafe_ptr())))
+			return NULL;
+
+		size_t n = b.size();
+		auto [lc, e, rc, root] = map_type::expose(std::move(b));
+
+		auto [l, r] = utils::fork<node *>(
+			n >= granularity,
+			[&]() {
+				return aug_filter2(std::move(lc), fpt, fbb,
+						   granularity);
+			},
+			[&]() {
+				return aug_filter2(std::move(rc), fpt, fbb,
+						   granularity);
+			});
+
+		if (fpt(e)) {
+			return map_type::join(l, e, r, root);
+		} else {
+			gc_type::decrement(root);
+			return map_type::join2(l, r);
+		}
+	}
 
 	template <class Func>
 	static node *aug_filter(ptr b, Func const &f,
@@ -404,7 +462,6 @@ struct augmented_ops : map_type {
 			Logger &logger)
 	{
 		using base_type = base_tree;
-		using coord_type = typename et_type::coord_type;
 		using dis_type = typename et_type::dis_type;
 
 		if (!b)

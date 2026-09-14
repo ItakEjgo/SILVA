@@ -314,6 +314,12 @@ public:
 		Tree::foreach_index(m.get_root(), 0, f);
 	}
 
+	static parlay::sequence<V> values(M m) {
+		parlay::sequence<V> out(m.size());
+		values(m, out.begin());
+		return out;
+	}
+
 	// flatten all keys to an output random access iterator
 	template <class outIter>
 	static void keys(M m, outIter out)

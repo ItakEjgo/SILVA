@@ -42,27 +42,43 @@ struct build {
 		// });
 		// auto B = parlay::internal::sample_sort(
 		//     parlay::make_slice(A.begin(), A.end()), less);
-		auto B = parlay::internal::cpam::cpam_sample_sort<
-			filling_curve_t, output_type>(
-			parlay::make_slice(A.begin(), A.end()),
-			[&](auto const &a, auto const &b) {
-				if constexpr (std::same_as<
-						      output_type,
-						      std::pair<K,
-								et_type *>>) {
-					// NOTE: using pair when build or insert
-					return a.first < b.first;
-				} else if constexpr (std::same_as<output_type,
-								  K>) {
-					return a < b;
-				} else if constexpr (std::same_as<output_type,
-								  et_type>) {
-					return less(a, b);
-				} else {
-					static_assert(false,
-						      "non_support_type");
+		if constexpr (std::is_same_v<filling_curve_t, void>) {
+			auto sorted_A = parlay::internal::sample_sort(parlay::make_slice(A.begin(), A.end()), less);
+			auto B = parlay::sequence<output_type>::uninitialized(sorted_A.size());
+			parlay::parallel_for(0, sorted_A.size(), [&](size_t i) {
+				if constexpr (std::same_as<output_type, std::pair<K, et_type *>>) {
+					B[i] = std::make_pair(Entry::get_key(sorted_A[i]), const_cast<et_type*>(&sorted_A[i]));
+				} else if constexpr (std::same_as<output_type, K>) {
+					B[i] = Entry::get_key(sorted_A[i]);
+				} else if constexpr (std::same_as<output_type, et_type>) {
+					B[i] = sorted_A[i];
 				}
 			});
+			return B;
+		} else {
+			auto B = parlay::internal::cpam::cpam_sample_sort<
+				filling_curve_t, output_type>(
+				parlay::make_slice(A.begin(), A.end()),
+				[&](auto const &a, auto const &b) {
+					if constexpr (std::same_as<
+							      output_type,
+							      std::pair<K,
+									et_type *>>) {
+						// NOTE: using pair when build or insert
+						return a.first < b.first;
+					} else if constexpr (std::same_as<output_type,
+									  K>) {
+						return a < b;
+					} else if constexpr (std::same_as<output_type,
+									  et_type>) {
+						return less(a, b);
+					} else {
+						static_assert(false,
+							      "non_support_type");
+					}
+				});
+			return B;
+		}
 		// auto B =
 		// parlay::internal::cpam::cpam_sample_sort<filling_curve_t>(
 		//     parlay::make_slice(A.begin(), A.end()), less);
@@ -79,7 +95,6 @@ struct build {
 		// auto o = parlay::pack(B, fl);
 		// t.next("pack");
 		// return o;
-		return B;
 	}
 
 	template <class Seq, class Reduce>

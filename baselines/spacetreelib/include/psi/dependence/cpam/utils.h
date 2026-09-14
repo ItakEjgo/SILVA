@@ -17,6 +17,7 @@ namespace psi
 namespace cpam
 {
 using namespace std;
+inline std::atomic<size_t> cpam_live_mem(0);
 namespace utils
 {
 
