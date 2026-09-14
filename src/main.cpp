@@ -15,6 +15,7 @@
 #include "../tests/test_mvq.hpp"
 #include "../tests/test_pacz.hpp"
 #include "../tests/test_paczu.hpp"
+#include "../tests/test_spac.hpp"
 #include "../tests/test_paczu_correctness.hpp"
 
 using namespace std;
@@ -69,6 +70,8 @@ void run(int argc, char** argv) {
         return;
     }
 
+    bool single_version = cmd.getOption("-sv") || cmd.getOption("-single");
+    // Batch ratios definition
     // Batch ratios definition
     string batch_ratios_str = cmd.getOptionValue("-br", "0.01,0.1,0.25,0.5,1.0");
     double compact_p = cmd.getOptionDoubleValue("-p", 1.0);
@@ -102,11 +105,11 @@ void run(int argc, char** argv) {
         }
         if (algo == "mvq" || algo == "combined") ZDTest::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P_base, P_update, batch_ratios);
+        if (algo == "pacz" || algo == "combined") PACZ::batch_insert_test(P_base, P_update, batch_ratios, false, single_version);
         if (algo == "combined") line_splitter();
-        if (algo == "paczu" || algo == "combined") PACZU::batch_insert_test(P_base, P_update, batch_ratios);
+        if (algo == "paczu" || algo == "combined") PACZU::batch_insert_test(P_base, P_update, batch_ratios, false, single_version);
         if (algo == "combined") line_splitter();
-        if (algo == "rlog" || algo == "combined") RlogTest::batch_insert_test(P_base, P_update, batch_ratios, compact_p);
+        if (algo == "spac" || algo == "combined") SPACTest::batch_insert_test(P_base, P_update, batch_ratios, single_version);
         if (algo == "combined") line_splitter();
         if (algo == "pkdtree" || algo == "combined") PKDTest::batch_insert_test(P_base, P_update, batch_ratios);
         if (algo == "combined") line_splitter();
@@ -117,9 +120,9 @@ void run(int argc, char** argv) {
     else if (task == "batch-delete") {
         if (algo == "mvq" || algo == "combined") ZDTest::batch_delete_test(P_base, batch_ratios);
         if (algo == "combined") line_splitter();
-        if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P_base, batch_ratios);
+        if (algo == "pacz" || algo == "combined") PACZ::batch_delete_test(P_base, batch_ratios, false, single_version);
         if (algo == "combined") line_splitter();
-        if (algo == "paczu" || algo == "combined") PACZU::batch_delete_test(P_base, batch_ratios);
+        if (algo == "paczu" || algo == "combined") PACZU::batch_delete_test(P_base, batch_ratios, false, single_version);
         if (algo == "combined") line_splitter();
         if (algo == "rlog" || algo == "combined") RlogTest::batch_delete_test(P_base, batch_ratios, compact_p);
         if (algo == "combined") line_splitter();
@@ -134,29 +137,19 @@ void run(int argc, char** argv) {
         auto q_tuple = geobase::read_range_query(count_qry_file, 4, mvq::Config::get().maxSize);
         auto querys = std::get<1>(q_tuple);
         auto cnt = std::get<0>(q_tuple);
-        if (algo == "mvq" || algo == "combined") ZDTest::range_count_test(P_base, querys, cnt);
-        if (algo == "pacz" || algo == "combined") PACZ::range_count_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "paczu" || algo == "combined") PACZU::range_count_test(P_base, querys, cnt);
     }
     else if (task == "range-report") {
         string report_qry_file = cmd.getOptionValue("-r", "range_report.qry");
         auto q_tuple = geobase::read_range_query(report_qry_file, 8, mvq::Config::get().maxSize);
         auto querys = std::get<1>(q_tuple);
         auto cnt = std::get<0>(q_tuple);
-        if (algo == "mvq" || algo == "combined") ZDTest::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "pacz" || algo == "combined") PACZ::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "rlog" || algo == "combined") RlogTest::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "pkdtree" || algo == "combined") PKDTest::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "pacz" || algo == "combined") PACZ::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "paczu" || algo == "combined") PACZU::range_report_test(P_base, querys, cnt);
         if (algo == "combined") line_splitter();
-        if (algo == "boost" || algo == "combined") BoostTest::range_report_test(P_base, querys, cnt);
     }
     else if (task == "knn") {
         size_t k = cmd.getOptionIntValue("-k", 10);
