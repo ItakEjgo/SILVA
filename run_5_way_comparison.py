@@ -6,7 +6,6 @@ import os
 
 def run_cmd(algo, ratio, is_single_version, base_file, update_file, threads):
     cmd = [
-        "taskset", f"-c", f"0-{threads-1}",
         "build/main",
         "-t", "batch-insert",
         "-a", algo,
@@ -15,13 +14,16 @@ def run_cmd(algo, ratio, is_single_version, base_file, update_file, threads):
         "-br", str(ratio),
         "-p", "0.2"
     ]
+    if threads > 0:
+        cmd = ["taskset", "-c", f"0-{threads-1}"] + cmd
+        
     if is_single_version:
         cmd.append("-sv")
         
     env = dict(os.environ)
-    env["PARLAY_NUM_THREADS"] = str(threads)
-    env["OMP_NUM_THREADS"] = str(threads)
-
+    if threads > 0:
+        env["PARLAY_NUM_THREADS"] = str(threads)
+        env["OMP_NUM_THREADS"] = str(threads)
     try:
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
         if res.returncode != 0:
@@ -40,7 +42,7 @@ def main():
     parser.add_argument("--dataset-base", default="dataset/uniform/1M_2_1.in", help="基础数据集路径")
     parser.add_argument("--dataset-update", default="dataset/uniform/1M_2_2.in", help="更新数据集路径")
     parser.add_argument("--ratios", type=str, default="0.001", help="逗号分隔的多个 ratio，例如: 0.001,0.01,0.1")
-    parser.add_argument("--threads", type=int, default=8, help="线程数")
+    parser.add_argument("--threads", type=int, default=0, help="线程数，默认 0 表示使用所有可用核心")
     args = parser.parse_args()
 
     if not os.path.exists("build/main"):
