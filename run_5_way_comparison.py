@@ -39,7 +39,7 @@ def main():
     parser = argparse.ArgumentParser(description="运行 5 种算法组合对比实验")
     parser.add_argument("--dataset-base", default="dataset/uniform/1M_2_1.in", help="基础数据集路径")
     parser.add_argument("--dataset-update", default="dataset/uniform/1M_2_2.in", help="更新数据集路径")
-    parser.add_argument("--ratio", type=float, default=0.001, help="批量更新比例")
+    parser.add_argument("--ratios", type=str, default="0.001", help="逗号分隔的多个 ratio，例如: 0.001,0.01,0.1")
     parser.add_argument("--threads", type=int, default=8, help="线程数")
     args = parser.parse_args()
 
@@ -56,26 +56,29 @@ def main():
     ]
 
     print(f"=== 运行 5 种组合的基准实验 ===")
-    print(f"数据集 Base: {args.dataset_base}")
-    print(f"数据集 Update: {args.dataset_update}")
-    print(f"Batch Ratio: {args.ratio}")
+    print(f"Batch Ratios: {args.ratios}")
     print(f"Threads: {args.threads}")
     print("-" * 60)
 
-    results = []
-    for name, algo, sv, desc in configs:
-        print(f"正在运行: {name:10} | 模式: {desc} ... ", end="", flush=True)
-        t = run_cmd(algo, args.ratio, sv, args.dataset_base, args.dataset_update, args.threads)
-        print(t)
-        results.append((name, desc, t))
+    ratios_list = [float(r.strip()) for r in args.ratios.split(",")]
 
-    print("\n" + "=" * 60)
-    print(" 📊 终极基准对比表 ")
-    print("=" * 60)
-    print(f"| {'数据结构':<12} | {'运行场景 (版本模式)':<20} | {'实际总耗时':<15} |")
-    print(f"|{'-'*14}|{'-'*22}|{'-'*17}|")
-    for name, desc, t in results:
-        print(f"| {name:<12} | {desc:<20} | {t:<15} |")
+    for r in ratios_list:
+        results = []
+        print(f"\n>>> 开始测试 Ratio = {r} <<<")
+        for name, algo, sv, desc in configs:
+            print(f"正在运行: {name:10} | 模式: {desc} ... ", end="", flush=True)
+            t = run_cmd(algo, r, sv, args.dataset_base, args.dataset_update, args.threads)
+            print(t)
+            results.append((name, desc, t))
+
+        print("\n" + "=" * 60)
+        print(f" 📊 终极基准对比表 (Ratio = {r}) ")
+        print("=" * 60)
+        print(f"| {'数据结构':<12} | {'运行场景 (版本模式)':<20} | {'实际总耗时':<15} |")
+        print(f"|{'-'*14}|{'-'*22}|{'-'*17}|")
+        for name, desc, t in results:
+            print(f"| {name:<12} | {desc:<20} | {t:<15} |")
+
 
 if __name__ == "__main__":
     main()
